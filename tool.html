@@ -1,0 +1,2134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Speaker Programme Manager</title>
+<style>
+  :root {
+    --primary: #6366F1;
+    --primary-dark: #4F46E5;
+    --primary-light: #EEF2FF;
+    --surface: #FFFFFF;
+    --surface-2: #F8FAFC;
+    --surface-3: #F1F5F9;
+    --border: #E2E8F0;
+    --text: #0F172A;
+    --text-2: #475569;
+    --text-3: #94A3B8;
+    --success: #10B981;
+    --success-bg: #ECFDF5;
+    --warning: #F59E0B;
+    --warning-bg: #FFFBEB;
+    --danger: #EF4444;
+    --danger-bg: #FEF2F2;
+    --info: #3B82F6;
+    --info-bg: #EFF6FF;
+    --radius: 8px;
+    --shadow: 0 1px 3px rgba(0,0,0,.1), 0 1px 2px rgba(0,0,0,.06);
+    --shadow-lg: 0 10px 25px rgba(0,0,0,.12);
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:14px;color:var(--text);background:var(--surface-2);line-height:1.5;min-width:320px}
+  h1{font-size:1.5rem;font-weight:700}
+  h2{font-size:1.125rem;font-weight:600}
+  h3{font-size:1rem;font-weight:600}
+
+  /* ── Layout ── */
+  .app-header{background:var(--primary);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+  .app-header h1{font-size:1.1rem;font-weight:700;white-space:nowrap}
+  .app-header .subtitle{font-size:.75rem;opacity:.8;display:none}
+  @media(min-width:480px){.app-header .subtitle{display:block}}
+  .header-actions{margin-left:auto;display:flex;gap:8px}
+
+  .tab-bar{background:var(--surface);border-bottom:2px solid var(--border);display:flex;overflow-x:auto;gap:0;padding:0 4px;scrollbar-width:none;position:sticky;top:52px;z-index:90}
+  .tab-bar::-webkit-scrollbar{display:none}
+  .tab-btn{padding:10px 14px;border:none;background:none;cursor:pointer;font-size:.8rem;font-weight:500;color:var(--text-2);white-space:nowrap;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;display:flex;align-items:center;gap:6px}
+  .tab-btn.active{color:var(--primary);border-bottom-color:var(--primary)}
+  .tab-btn:hover:not(.active){color:var(--text);background:var(--surface-3)}
+  .tab-btn .badge{background:var(--primary);color:#fff;border-radius:10px;padding:1px 6px;font-size:.7rem;font-weight:700}
+
+  .view{display:none;padding:16px;animation:fadeIn .15s}
+  .view.active{display:block}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+  /* ── Toolbar ── */
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;align-items:center}
+  .toolbar-left{display:flex;gap:8px;flex:1;flex-wrap:wrap}
+  .search-box{padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius);font-size:.85rem;width:200px;outline:none;transition:.15s}
+  .search-box:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(99,102,241,.1)}
+  select.filter-select{padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius);font-size:.85rem;background:var(--surface);outline:none;cursor:pointer}
+
+  /* ── Buttons ── */
+  .btn{padding:7px 14px;border-radius:var(--radius);border:none;cursor:pointer;font-size:.85rem;font-weight:500;transition:all .15s;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;text-decoration:none}
+  .btn-primary{background:var(--primary);color:#fff}.btn-primary:hover{background:var(--primary-dark)}
+  .btn-secondary{background:var(--surface);color:var(--text);border:1px solid var(--border)}.btn-secondary:hover{background:var(--surface-3)}
+  .btn-danger{background:var(--danger);color:#fff}.btn-danger:hover{background:#DC2626}
+  .btn-success{background:var(--success);color:#fff}.btn-success:hover{background:#059669}
+  .btn-ghost{background:none;color:var(--text-2);border:none}.btn-ghost:hover{background:var(--surface-3);color:var(--text)}
+  .btn-sm{padding:4px 10px;font-size:.78rem}
+  .btn-icon{padding:6px;border-radius:var(--radius)}
+
+  /* ── Cards ── */
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+  .card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+  .speaker-card{padding:16px;position:relative;transition:box-shadow .15s}.speaker-card:hover{box-shadow:var(--shadow-lg)}
+  .speaker-avatar{width:52px;height:52px;border-radius:50%;background:var(--primary-light);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.1rem;color:var(--primary);flex-shrink:0;overflow:hidden}
+  .speaker-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+  .speaker-card-header{display:flex;gap:12px;align-items:flex-start;margin-bottom:10px}
+  .speaker-card-info{flex:1;min-width:0}
+  .speaker-card-info h3{font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .speaker-card-info .org{font-size:.78rem;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .speaker-card-actions{display:flex;gap:4px}
+  .tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+  .tag{padding:2px 8px;border-radius:12px;font-size:.72rem;font-weight:500}
+  .tag-type{background:var(--primary-light);color:var(--primary)}
+  .tag-topic{background:var(--surface-3);color:var(--text-2)}
+
+  /* Status badges */
+  .badge-status{padding:2px 8px;border-radius:12px;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+  .s-shortlisted{background:#F3F4F6;color:#6B7280}
+  .s-invited{background:var(--info-bg);color:var(--info)}
+  .s-confirmed{background:var(--success-bg);color:var(--success)}
+  .s-briefed{background:#F0FDF4;color:#16A34A}
+  .s-presented{background:var(--warning-bg);color:var(--warning)}
+  .s-thanked{background:var(--surface-3);color:var(--text-2)}
+
+  .badge-format{padding:2px 8px;border-radius:4px;font-size:.72rem;font-weight:600}
+  .f-keynote{background:#EDE9FE;color:#7C3AED}
+  .f-panel{background:#DBEAFE;color:#1D4ED8}
+  .f-workshop{background:#D1FAE5;color:#065F46}
+  .f-lightning{background:#FEF3C7;color:#92400E}
+  .f-fireside{background:#FFE4E6;color:#9F1239}
+  .f-break{background:#F1F5F9;color:#475569}
+
+  /* ── Table ── */
+  .table-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--border)}
+  table{width:100%;border-collapse:collapse;background:var(--surface)}
+  th{padding:10px 12px;text-align:left;font-size:.78rem;font-weight:600;color:var(--text-2);background:var(--surface-2);border-bottom:1px solid var(--border);white-space:nowrap}
+  td{padding:10px 12px;border-bottom:1px solid var(--border);font-size:.85rem;vertical-align:middle}
+  tr:last-child td{border-bottom:none}
+  tr:hover td{background:var(--surface-2)}
+
+  /* ── Agenda Grid ── */
+  .agenda-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface)}
+  .agenda-grid{display:grid;min-width:600px}
+  .agenda-header-row{display:contents}
+  .agenda-time-col{background:var(--surface-2);border-right:1px solid var(--border);padding:8px 10px;font-size:.75rem;font-weight:600;color:var(--text-2);text-align:right;white-space:nowrap;grid-column:1}
+  .agenda-track-header{padding:10px 12px;font-size:.8rem;font-weight:700;color:var(--text);background:var(--surface-2);border-bottom:2px solid var(--primary);border-left:1px solid var(--border);text-align:center}
+  .agenda-slot{border-left:1px solid var(--border);border-bottom:1px solid var(--border);min-height:40px;padding:4px;position:relative;cursor:pointer;transition:background .1s}
+  .agenda-slot:hover{background:var(--primary-light)}
+  .agenda-slot.has-session{background:var(--surface);cursor:default;padding:0}
+  .agenda-slot.has-session:hover{background:var(--surface)}
+  .session-block{height:100%;border-radius:4px;padding:6px 8px;overflow:hidden;position:relative}
+  .session-block .s-title{font-size:.78rem;font-weight:600;line-height:1.3;margin-bottom:2px}
+  .session-block .s-speaker{font-size:.7rem;opacity:.8}
+  .session-block .s-remove{position:absolute;top:4px;right:4px;background:rgba(0,0,0,.2);border:none;border-radius:3px;width:16px;height:16px;cursor:pointer;display:none;align-items:center;justify-content:center;color:#fff;font-size:10px}
+  .session-block:hover .s-remove{display:flex}
+  .conflict-indicator{background:var(--danger);border-radius:50%;width:8px;height:8px;position:absolute;top:4px;right:4px}
+  .agenda-slot.add-slot{color:var(--text-3);font-size:.75rem;text-align:center;display:flex;align-items:center;justify-content:center}
+  .agenda-slot.add-slot:hover{color:var(--primary);background:var(--primary-light)}
+
+  /* ── Kanban Pipeline ── */
+  .kanban{display:flex;gap:12px;overflow-x:auto;padding-bottom:8px}
+  .kanban-col{flex:0 0 200px;background:var(--surface-3);border-radius:var(--radius);overflow:hidden}
+  @media(min-width:900px){.kanban-col{flex:1;min-width:150px}}
+  .kanban-header{padding:10px 12px;font-size:.8rem;font-weight:700;border-bottom:2px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  .kanban-count{background:var(--surface);border-radius:10px;padding:1px 7px;font-size:.72rem}
+  .kanban-body{padding:8px;min-height:120px;display:flex;flex-direction:column;gap:6px}
+  .kanban-card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:10px 12px;cursor:grab;transition:box-shadow .15s;user-select:none}
+  .kanban-card:hover{box-shadow:var(--shadow-lg)}
+  .kanban-card.dragging{opacity:.5}
+  .kanban-card h4{font-size:.82rem;font-weight:600;margin-bottom:2px}
+  .kanban-card .kc-org{font-size:.72rem;color:var(--text-2)}
+  .kanban-col.drag-over .kanban-body{background:var(--primary-light)}
+
+  /* ── Requirements ── */
+  .req-summary{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:16px}
+  .req-stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center}
+  .req-stat .num{font-size:1.5rem;font-weight:700}
+  .req-stat .lbl{font-size:.75rem;color:var(--text-2)}
+  .req-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;overflow:hidden}
+  .req-card-header{padding:12px 16px;display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none}
+  .req-card-header:hover{background:var(--surface-2)}
+  .req-card-body{padding:0 16px 12px;display:none}
+  .req-card-body.open{display:block}
+  .req-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-top:8px}
+  .req-field label{font-size:.75rem;font-weight:600;color:var(--text-2);display:block;margin-bottom:2px}
+  .req-field .val{font-size:.85rem;color:var(--text);background:var(--surface-2);border-radius:4px;padding:6px 8px;min-height:32px}
+  .progress-bar{height:6px;background:var(--surface-3);border-radius:3px;overflow:hidden;width:80px}
+  .progress-fill{height:100%;background:var(--success);border-radius:3px;transition:width .3s}
+
+  /* ── Comms Log ── */
+  .comms-timeline{border-left:2px solid var(--border);margin-left:12px;padding-left:16px;display:flex;flex-direction:column;gap:10px}
+  .comms-entry{position:relative}
+  .comms-entry::before{content:'';position:absolute;left:-21px;top:8px;width:10px;height:10px;border-radius:50%;background:var(--primary);border:2px solid var(--surface)}
+  .comms-entry-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px}
+  .comms-entry-card .ce-meta{font-size:.72rem;color:var(--text-2);margin-bottom:4px;display:flex;gap:10px;flex-wrap:wrap}
+  .comms-entry-card .ce-subject{font-size:.85rem;font-weight:600}
+  .comms-entry-card .ce-notes{font-size:.8rem;color:var(--text-2);margin-top:4px}
+  .comms-followup{background:var(--warning-bg);border:1px solid var(--warning);border-radius:4px;padding:4px 8px;font-size:.75rem;color:var(--warning);margin-top:4px;display:inline-block}
+  .comms-type-badge{padding:2px 7px;border-radius:10px;font-size:.7rem;font-weight:600}
+  .ct-email{background:#DBEAFE;color:#1D4ED8}
+  .ct-call{background:#D1FAE5;color:#065F46}
+  .ct-meeting{background:#EDE9FE;color:#7C3AED}
+
+  /* ── Export View ── */
+  .export-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+  .export-card{padding:20px;border-radius:var(--radius)}
+  .export-card h3{margin-bottom:6px;display:flex;align-items:center;gap:8px}
+  .export-card p{font-size:.82rem;color:var(--text-2);margin-bottom:14px}
+  .export-icon{font-size:1.3rem}
+
+  /* ── Modal ── */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto}
+  .modal-overlay.open{display:flex}
+  .modal{background:var(--surface);border-radius:12px;width:100%;max-width:560px;box-shadow:var(--shadow-lg);animation:slideUp .2s}
+  .modal-lg{max-width:740px}
+  @keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:none;opacity:1}}
+  .modal-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  .modal-header h2{font-size:1rem}
+  .modal-body{padding:20px;max-height:70vh;overflow-y:auto}
+  .modal-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end}
+
+  /* ── Form ── */
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:480px){.form-grid{grid-template-columns:1fr}}
+  .form-group{display:flex;flex-direction:column;gap:4px}
+  .form-group.full{grid-column:1/-1}
+  label.fl{font-size:.8rem;font-weight:600;color:var(--text-2)}
+  .form-control{padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);font-size:.85rem;background:var(--surface);outline:none;transition:.15s;font-family:inherit;width:100%}
+  .form-control:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(99,102,241,.1)}
+  textarea.form-control{resize:vertical;min-height:80px}
+  .tag-input-wrap{display:flex;flex-wrap:wrap;gap:4px;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius);cursor:text;background:var(--surface);min-height:38px;align-items:center}
+  .tag-input-wrap:focus-within{border-color:var(--primary);box-shadow:0 0 0 3px rgba(99,102,241,.1)}
+  .tag-input-wrap .tag{cursor:pointer;display:flex;align-items:center;gap:3px}
+  .tag-input-wrap input{border:none;outline:none;font-size:.82rem;min-width:80px;flex:1;background:transparent;font-family:inherit}
+  .speaker-assign-list{display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius);padding:6px}
+  .speaker-assign-item{display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:4px}
+  .speaker-assign-item:hover{background:var(--surface-2)}
+  .speaker-assign-item input[type=checkbox]{cursor:pointer}
+  .sa-role{font-size:.75rem;padding:2px 6px;border:1px solid var(--border);border-radius:4px;outline:none;font-family:inherit;background:var(--surface);display:none}
+  .speaker-assign-item.checked .sa-role{display:block}
+
+  /* ── Stats bar ── */
+  .stats-bar{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+  .stat-chip{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;display:flex;align-items:center;gap:10px}
+  .stat-chip .sc-num{font-size:1.25rem;font-weight:700;color:var(--primary)}
+  .stat-chip .sc-lbl{font-size:.75rem;color:var(--text-2)}
+
+  /* ── Empty states ── */
+  .empty{text-align:center;padding:48px 20px;color:var(--text-2)}
+  .empty .empty-icon{font-size:3rem;margin-bottom:12px}
+  .empty h3{font-size:1rem;margin-bottom:6px;color:var(--text)}
+  .empty p{font-size:.85rem;margin-bottom:16px}
+
+  /* ── Misc ── */
+  .divider{height:1px;background:var(--border);margin:16px 0}
+  .text-sm{font-size:.82rem}
+  .text-xs{font-size:.72rem}
+  .text-muted{color:var(--text-2)}
+  .text-danger{color:var(--danger)}
+  .inline-flex{display:inline-flex;align-items:center;gap:4px}
+  .gap-2{gap:8px}
+  .mt-2{margin-top:8px}
+  .mt-3{margin-top:12px}
+  .mb-2{margin-bottom:8px}
+  .flex{display:flex;align-items:center}
+  .flex-1{flex:1}
+  .font-bold{font-weight:700}
+  .view-toggle{display:flex;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+  .view-toggle button{padding:6px 10px;border:none;background:var(--surface);cursor:pointer;font-size:.9rem;color:var(--text-2);transition:.1s}
+  .view-toggle button.active{background:var(--primary);color:#fff}
+
+  /* print */
+  @media print{
+    .app-header,.tab-bar,.toolbar,.modal-overlay,.btn,.header-actions{display:none!important}
+    .view{display:block!important;padding:0}
+    body{background:#fff}
+    .print-only{display:block}
+    .no-print{display:none!important}
+  }
+  .print-only{display:none}
+
+  /* ── Follow-up dashboard ── */
+  .followup-list{display:flex;flex-direction:column;gap:8px}
+  .followup-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;display:flex;align-items:center;gap:12px}
+  .followup-item .fi-date{font-size:.8rem;font-weight:600;color:var(--warning);white-space:nowrap}
+  .followup-item .fi-info{flex:1}
+  .followup-item .fi-speaker{font-size:.82rem;font-weight:600}
+  .followup-item .fi-subject{font-size:.78rem;color:var(--text-2)}
+
+  /* ── View header ── */
+  .view-header{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+  .view-header h2{font-size:1.1rem;flex:1}
+
+  /* session list */
+  .session-row-speakers{display:flex;flex-wrap:wrap;gap:4px}
+  .mini-avatar{width:22px;height:22px;border-radius:50%;background:var(--primary-light);display:inline-flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:var(--primary);border:1px solid var(--border)}
+
+  /* social links */
+  .social-links{display:flex;gap:6px;margin-top:6px}
+  .social-link{color:var(--text-2);text-decoration:none;font-size:.8rem;display:inline-flex;align-items:center;gap:3px;padding:2px 6px;border:1px solid var(--border);border-radius:4px;transition:.1s}
+  .social-link:hover{color:var(--primary);border-color:var(--primary)}
+</style>
+</head>
+<body>
+
+<!-- ═══ APP HEADER ═══ -->
+<header class="app-header">
+  <div>
+    <h1 id="app-title">🎤 Speaker Programme</h1>
+    <div class="subtitle" id="app-subtitle">Loading…</div>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-secondary btn-sm" onclick="loadSampleData()" title="Load sample conference data">📋 Sample Data</button>
+    <button class="btn btn-secondary btn-sm" onclick="exportAllJSON()" title="Export all data as JSON">⬇ Backup</button>
+  </div>
+</header>
+
+<!-- ═══ TAB BAR ═══ -->
+<nav class="tab-bar" id="tab-bar">
+  <button class="tab-btn active" onclick="switchView('speakers')" id="tab-speakers">🧑‍💼 Speakers <span class="badge" id="badge-speakers">0</span></button>
+  <button class="tab-btn" onclick="switchView('sessions')" id="tab-sessions">🎯 Sessions <span class="badge" id="badge-sessions">0</span></button>
+  <button class="tab-btn" onclick="switchView('agenda')" id="tab-agenda">📅 Agenda</button>
+  <button class="tab-btn" onclick="switchView('requirements')" id="tab-requirements">📋 Requirements</button>
+  <button class="tab-btn" onclick="switchView('pipeline')" id="tab-pipeline">🔄 Pipeline</button>
+  <button class="tab-btn" onclick="switchView('comms')" id="tab-comms">💬 Comms</button>
+  <button class="tab-btn" onclick="switchView('export')" id="tab-export">⬆ Export</button>
+</nav>
+
+<!-- ════════════════════════════════════════════
+     VIEW: SPEAKERS
+════════════════════════════════════════════ -->
+<section class="view active" id="view-speakers">
+  <div class="stats-bar" id="speakers-stats"></div>
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <input class="search-box" type="search" placeholder="Search speakers…" oninput="filterSpeakers()" id="speaker-search">
+      <select class="filter-select" onchange="filterSpeakers()" id="speaker-type-filter">
+        <option value="">All types</option>
+      </select>
+      <select class="filter-select" onchange="filterSpeakers()" id="speaker-status-filter">
+        <option value="">All statuses</option>
+        <option value="shortlisted">Shortlisted</option>
+        <option value="invited">Invited</option>
+        <option value="confirmed">Confirmed</option>
+        <option value="briefed">Briefed</option>
+        <option value="presented">Presented</option>
+        <option value="thanked">Thanked</option>
+      </select>
+    </div>
+    <div class="view-toggle">
+      <button id="view-cards-btn" class="active" onclick="setSpeakerView('cards')" title="Card view">⊞</button>
+      <button id="view-list-btn" onclick="setSpeakerView('list')" title="List view">☰</button>
+    </div>
+    <button class="btn btn-primary" onclick="openSpeakerModal()">+ Add Speaker</button>
+  </div>
+  <div id="speakers-container"></div>
+</section>
+
+<!-- ════════════════════════════════════════════
+     VIEW: SESSIONS
+════════════════════════════════════════════ -->
+<section class="view" id="view-sessions">
+  <div class="stats-bar" id="sessions-stats"></div>
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <input class="search-box" type="search" placeholder="Search sessions…" oninput="filterSessions()" id="session-search">
+      <select class="filter-select" onchange="filterSessions()" id="session-track-filter">
+        <option value="">All tracks</option>
+      </select>
+      <select class="filter-select" onchange="filterSessions()" id="session-format-filter">
+        <option value="">All formats</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" onclick="openSessionModal()">+ Add Session</button>
+  </div>
+  <div class="table-wrap">
+    <table id="sessions-table">
+      <thead>
+        <tr>
+          <th>Session</th>
+          <th>Format</th>
+          <th>Track</th>
+          <th>Time Slot</th>
+          <th>Speakers</th>
+          <th>Room</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="sessions-tbody"></tbody>
+    </table>
+  </div>
+  <div class="empty" id="sessions-empty" style="display:none">
+    <div class="empty-icon">🎯</div>
+    <h3>No sessions yet</h3>
+    <p>Add your first session to start building the programme</p>
+    <button class="btn btn-primary" onclick="openSessionModal()">+ Add Session</button>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════
+     VIEW: AGENDA BUILDER
+════════════════════════════════════════════ -->
+<section class="view" id="view-agenda">
+  <div class="view-header">
+    <h2>Agenda Builder</h2>
+    <div class="flex gap-2">
+      <select class="filter-select" id="agenda-day-select" onchange="renderAgenda()">
+        <option value="all">All Day</option>
+      </select>
+      <button class="btn btn-secondary btn-sm" onclick="renderAgenda()">↻ Refresh</button>
+      <button class="btn btn-success btn-sm" onclick="pushToRunSheet()">▶ Push to Run Sheet</button>
+    </div>
+  </div>
+  <div id="conflict-banner" style="display:none;margin-bottom:12px;padding:10px 14px;background:var(--danger-bg);border:1px solid var(--danger);border-radius:var(--radius);font-size:.85rem;color:var(--danger)"></div>
+  <div class="agenda-wrap">
+    <div class="agenda-grid" id="agenda-grid"></div>
+  </div>
+  <p class="text-xs text-muted mt-2">Click an empty slot to assign a session. Click the × on a session block to unschedule it.</p>
+</section>
+
+<!-- ════════════════════════════════════════════
+     VIEW: REQUIREMENTS
+════════════════════════════════════════════ -->
+<section class="view" id="view-requirements">
+  <div class="req-summary" id="req-summary"></div>
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <input class="search-box" type="search" placeholder="Filter speakers…" oninput="filterRequirements()" id="req-search">
+      <select class="filter-select" onchange="filterRequirements()" id="req-filter">
+        <option value="">All speakers</option>
+        <option value="incomplete">Has outstanding items</option>
+        <option value="confirmed">Fully confirmed</option>
+      </select>
+    </div>
+  </div>
+  <div id="req-list"></div>
+</section>
+
+<!-- ════════════════════════════════════════════
+     VIEW: PIPELINE
+════════════════════════════════════════════ -->
+<section class="view" id="view-pipeline">
+  <div class="view-header">
+    <h2>Speaker Pipeline</h2>
+    <div class="text-sm text-muted">Drag cards to update speaker status</div>
+  </div>
+  <div class="kanban" id="kanban-board"></div>
+</section>
+
+<!-- ════════════════════════════════════════════
+     VIEW: COMMS LOG
+════════════════════════════════════════════ -->
+<section class="view" id="view-comms">
+  <div class="view-header">
+    <h2>Communication Log</h2>
+    <button class="btn btn-primary btn-sm" onclick="openCommsModal()">+ Log Communication</button>
+  </div>
+  <!-- Follow-up dashboard -->
+  <div id="followup-section" style="margin-bottom:20px">
+    <h3 class="mb-2">⏰ Upcoming Follow-ups</h3>
+    <div id="followup-list" class="followup-list"></div>
+  </div>
+  <div class="divider"></div>
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <select class="filter-select" id="comms-speaker-filter" onchange="renderComms()">
+        <option value="">All speakers</option>
+      </select>
+      <select class="filter-select" id="comms-type-filter" onchange="renderComms()">
+        <option value="">All types</option>
+        <option value="email">Email</option>
+        <option value="call">Call</option>
+        <option value="meeting">Meeting</option>
+      </select>
+    </div>
+  </div>
+  <div id="comms-log"></div>
+</section>
+
+<!-- ════════════════════════════════════════════
+     VIEW: EXPORT
+════════════════════════════════════════════ -->
+<section class="view" id="view-export">
+  <div class="view-header"><h2>Export & Integration</h2></div>
+  <div class="export-grid">
+    <div class="card export-card">
+      <h3><span class="export-icon">👥</span> Speaker Directory</h3>
+      <p>Print-ready PDF listing all confirmed speakers with bio, organisation, and topics.</p>
+      <button class="btn btn-primary" onclick="printSpeakerDirectory()">🖨 Print / Save PDF</button>
+    </div>
+    <div class="card export-card">
+      <h3><span class="export-icon">📅</span> Session Schedule PDF</h3>
+      <p>Print-ready agenda showing all sessions by track and time slot.</p>
+      <button class="btn btn-primary" onclick="printSessionSchedule()">🖨 Print / Save PDF</button>
+    </div>
+    <div class="card export-card">
+      <h3><span class="export-icon">📊</span> Speakers CSV</h3>
+      <p>Export all speaker profiles to a CSV file for mail merge or reporting.</p>
+      <button class="btn btn-secondary" onclick="exportSpeakersCSV()">⬇ Download CSV</button>
+    </div>
+    <div class="card export-card">
+      <h3><span class="export-icon">📊</span> Sessions CSV</h3>
+      <p>Export all session data to a CSV file.</p>
+      <button class="btn btn-secondary" onclick="exportSessionsCSV()">⬇ Download CSV</button>
+    </div>
+    <div class="card export-card">
+      <h3><span class="export-icon">⚡</span> Push to Run Sheet</h3>
+      <p>Write all confirmed sessions as cues into the Run Sheet tool's localStorage data.</p>
+      <button class="btn btn-success" onclick="pushToRunSheet()">▶ Push Sessions to Run Sheet</button>
+      <div id="runsheet-status" class="mt-2 text-sm text-muted"></div>
+    </div>
+    <div class="card export-card">
+      <h3><span class="export-icon">📦</span> Full Backup</h3>
+      <p>Export all speaker programme data as JSON for backup or migration.</p>
+      <button class="btn btn-secondary" onclick="exportAllJSON()">⬇ Export JSON</button>
+      <div class="mt-2">
+        <label class="fl">Import JSON backup:</label>
+        <input type="file" accept=".json" onchange="importJSON(event)" class="form-control mt-2" style="font-size:.78rem">
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════
+     MODALS
+════════════════════════════════════════════ -->
+
+<!-- Speaker Modal -->
+<div class="modal-overlay" id="speaker-modal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h2 id="speaker-modal-title">Add Speaker</h2>
+      <button class="btn btn-ghost btn-icon" onclick="closeModal('speaker-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="fl" for="sp-name">Full Name *</label>
+          <input class="form-control" id="sp-name" placeholder="e.g. Dr Sarah Mitchell">
+        </div>
+        <div class="form-group">
+          <label class="fl" for="sp-title">Job Title</label>
+          <input class="form-control" id="sp-title" placeholder="e.g. Chief Innovation Officer">
+        </div>
+        <div class="form-group">
+          <label class="fl" for="sp-org">Organisation</label>
+          <input class="form-control" id="sp-org" placeholder="e.g. TechCorp Ltd">
+        </div>
+        <div class="form-group">
+          <label class="fl" for="sp-type">Speaker Type</label>
+          <select class="form-control" id="sp-type"></select>
+        </div>
+        <div class="form-group">
+          <label class="fl" for="sp-status">Status</label>
+          <select class="form-control" id="sp-status">
+            <option value="shortlisted">Shortlisted</option>
+            <option value="invited">Invited</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="briefed">Briefed</option>
+            <option value="presented">Presented</option>
+            <option value="thanked">Thanked</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="fl" for="sp-photo">Photo URL</label>
+          <input class="form-control" id="sp-photo" placeholder="https://…">
+        </div>
+        <div class="form-group">
+          <label class="fl" for="sp-linkedin">LinkedIn URL</label>
+          <input class="form-control" id="sp-linkedin" placeholder="https://linkedin.com/in/…">
+        </div>
+        <div class="form-group">
+          <label class="fl" for="sp-twitter">Twitter / X Handle</label>
+          <input class="form-control" id="sp-twitter" placeholder="@handle">
+        </div>
+        <div class="form-group full">
+          <label class="fl">Topics / Expertise (press Enter to add)</label>
+          <div class="tag-input-wrap" id="sp-topics-wrap" onclick="this.querySelector('input').focus()">
+            <input id="sp-topics-input" placeholder="Add a topic…" onkeydown="handleTopicKey(event)">
+          </div>
+        </div>
+        <div class="form-group full">
+          <label class="fl" for="sp-bio">Bio</label>
+          <textarea class="form-control" id="sp-bio" rows="4" placeholder="Speaker biography…"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="fl" for="sp-email">Email</label>
+          <input class="form-control" id="sp-email" type="email" placeholder="speaker@example.com">
+        </div>
+        <div class="form-group">
+          <label class="fl" for="sp-phone">Phone</label>
+          <input class="form-control" id="sp-phone" placeholder="+44 7000 000000">
+        </div>
+        <div class="form-group">
+          <label class="fl" for="sp-fee">Agreed Fee</label>
+          <input class="form-control" id="sp-fee" placeholder="e.g. £2,500 + expenses">
+        </div>
+        <div class="form-group">
+          <label class="fl" for="sp-agency">Agent / Agency</label>
+          <input class="form-control" id="sp-agency" placeholder="Agency name">
+        </div>
+        <div class="form-group full">
+          <label class="fl" for="sp-notes">Internal Notes</label>
+          <textarea class="form-control" id="sp-notes" rows="2" placeholder="Internal notes (not shared)…"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('speaker-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveSpeaker()">Save Speaker</button>
+    </div>
+  </div>
+</div>
+
+<!-- Session Modal -->
+<div class="modal-overlay" id="session-modal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h2 id="session-modal-title">Add Session</h2>
+      <button class="btn btn-ghost btn-icon" onclick="closeModal('session-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label class="fl" for="sess-title">Session Title *</label>
+          <input class="form-control" id="sess-title" placeholder="e.g. The Future of AI in Events">
+        </div>
+        <div class="form-group">
+          <label class="fl" for="sess-format">Format</label>
+          <select class="form-control" id="sess-format"></select>
+        </div>
+        <div class="form-group">
+          <label class="fl" for="sess-track">Track</label>
+          <select class="form-control" id="sess-track"></select>
+        </div>
+        <div class="form-group">
+          <label class="fl" for="sess-day">Day</label>
+          <select class="form-control" id="sess-day">
+            <option value="Day 1">Day 1</option>
+            <option value="Day 2">Day 2</option>
+            <option value="Day 3">Day 3</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="fl" for="sess-time">Start Time</label>
+          <input class="form-control" id="sess-time" type="time" value="09:00">
+        </div>
+        <div class="form-group">
+          <label class="fl" for="sess-duration">Duration (minutes)</label>
+          <input class="form-control" id="sess-duration" type="number" value="45" min="5" step="5">
+        </div>
+        <div class="form-group">
+          <label class="fl" for="sess-room">Room / Location</label>
+          <input class="form-control" id="sess-room" placeholder="e.g. Main Auditorium">
+        </div>
+        <div class="form-group">
+          <label class="fl" for="sess-capacity">Capacity</label>
+          <input class="form-control" id="sess-capacity" type="number" placeholder="e.g. 300">
+        </div>
+        <div class="form-group">
+          <label class="fl" for="sess-status">Status</label>
+          <select class="form-control" id="sess-status">
+            <option value="draft">Draft</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label class="fl">Speaker Assignments</label>
+          <div class="speaker-assign-list" id="sess-speaker-list"></div>
+        </div>
+        <div class="form-group full">
+          <label class="fl" for="sess-abstract">Abstract</label>
+          <textarea class="form-control" id="sess-abstract" rows="3" placeholder="Session description / abstract…"></textarea>
+        </div>
+        <div class="form-group full">
+          <label class="fl" for="sess-notes">Notes</label>
+          <textarea class="form-control" id="sess-notes" rows="2" placeholder="Internal notes…"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('session-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveSession()">Save Session</button>
+    </div>
+  </div>
+</div>
+
+<!-- Agenda Slot Modal (assign session to slot) -->
+<div class="modal-overlay" id="agenda-slot-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="agenda-slot-title">Assign Session</h2>
+      <button class="btn btn-ghost btn-icon" onclick="closeModal('agenda-slot-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="text-sm text-muted mb-2">Select a session to place in this slot:</p>
+      <input class="form-control mb-2" type="search" placeholder="Search sessions…" oninput="filterSlotSessions(this.value)" id="slot-search">
+      <div id="slot-session-list" style="max-height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:4px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('agenda-slot-modal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Requirements Edit Modal -->
+<div class="modal-overlay" id="req-modal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h2 id="req-modal-title">Edit Requirements</h2>
+      <button class="btn btn-ghost btn-icon" onclick="closeModal('req-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group full"><label class="fl">AV / Technical Needs</label><input class="form-control" id="req-av" placeholder="e.g. Lapel mic, HDMI adaptor, clicker"></div>
+        <div class="form-group full"><label class="fl">Slides Format</label><input class="form-control" id="req-slides" placeholder="e.g. PowerPoint, Google Slides, Keynote"></div>
+        <div class="form-group full"><label class="fl">Demo Requirements</label><input class="form-control" id="req-demo" placeholder="e.g. Live internet connection needed"></div>
+        <div class="form-group full"><label class="fl">Dietary Requirements</label><input class="form-control" id="req-dietary" placeholder="e.g. Vegetarian, nut allergy"></div>
+        <div class="form-group"><label class="fl">Arrival Date & Time</label><input class="form-control" id="req-arrival" placeholder="e.g. 11 Jun, 14:00"></div>
+        <div class="form-group"><label class="fl">Departure Date & Time</label><input class="form-control" id="req-departure" placeholder="e.g. 13 Jun, 18:00"></div>
+        <div class="form-group full"><label class="fl">Airport Transfer</label><input class="form-control" id="req-transfer" placeholder="e.g. Pick-up from Heathrow T5, 14:30"></div>
+        <div class="form-group full"><label class="fl">Accommodation</label><input class="form-control" id="req-hotel" placeholder="e.g. Hilton City Centre, 11–13 Jun"></div>
+        <div class="form-group full"><label class="fl">Special Requests</label><textarea class="form-control" id="req-special" rows="2" placeholder="Any other requirements…"></textarea></div>
+        <div class="form-group">
+          <label class="fl">All Requirements Confirmed?</label>
+          <div class="flex gap-2 mt-2">
+            <input type="checkbox" id="req-confirmed" style="width:16px;height:16px;cursor:pointer">
+            <label for="req-confirmed" style="font-size:.85rem;cursor:pointer">Mark as fully confirmed</label>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('req-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveRequirements()">Save Requirements</button>
+    </div>
+  </div>
+</div>
+
+<!-- Comms Modal -->
+<div class="modal-overlay" id="comms-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Log Communication</h2>
+      <button class="btn btn-ghost btn-icon" onclick="closeModal('comms-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label class="fl" for="comms-speaker">Speaker</label>
+          <select class="form-control" id="comms-speaker"></select>
+        </div>
+        <div class="form-group">
+          <label class="fl" for="comms-date">Date</label>
+          <input class="form-control" id="comms-date" type="date">
+        </div>
+        <div class="form-group">
+          <label class="fl" for="comms-type">Type</label>
+          <select class="form-control" id="comms-type">
+            <option value="email">Email</option>
+            <option value="call">Call</option>
+            <option value="meeting">Meeting</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label class="fl" for="comms-subject">Subject</label>
+          <input class="form-control" id="comms-subject" placeholder="e.g. Confirmation of keynote slot">
+        </div>
+        <div class="form-group full">
+          <label class="fl" for="comms-notes">Notes</label>
+          <textarea class="form-control" id="comms-notes" rows="3" placeholder="Summary of communication…"></textarea>
+        </div>
+        <div class="form-group full">
+          <label class="fl" for="comms-followup">Follow-up Date (optional)</label>
+          <input class="form-control" id="comms-followup" type="date">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('comms-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveComms()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Speaker Detail Modal -->
+<div class="modal-overlay" id="speaker-detail-modal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h2 id="detail-name">Speaker Detail</h2>
+      <button class="btn btn-ghost btn-icon" onclick="closeModal('speaker-detail-modal')">✕</button>
+    </div>
+    <div class="modal-body" id="speaker-detail-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('speaker-detail-modal')">Close</button>
+      <button class="btn btn-primary" id="detail-edit-btn">Edit Speaker</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// CONFIG & STORAGE
+// ═══════════════════════════════════════════════
+const CFG = (typeof EVENTHIVE_CONFIG !== 'undefined') ? EVENTHIVE_CONFIG : {};
+const PRIMARY = CFG.primaryColor || '#6366F1';
+const COMPANY = CFG.companyName || 'My Event';
+const EVENT_NAME = CFG.eventName || 'My Conference';
+const TIME_FORMAT = CFG.timeFormat || '24h';
+const DAY_START = CFG.dayStart || '08:00';
+const DAY_END = CFG.dayEnd || '19:00';
+const TRACKS = (CFG.defaultTracks && CFG.defaultTracks.length) ? CFG.defaultTracks : ['Main Stage','Innovation Track','Workshop Room'];
+const SESSION_FORMATS = (CFG.sessionFormats && CFG.sessionFormats.length) ? CFG.sessionFormats : ['Keynote','Panel','Workshop','Lightning Talk','Fireside Chat','Break'];
+const SPEAKER_TYPES = (CFG.speakerTypes && CFG.speakerTypes.length) ? CFG.speakerTypes : ['Keynote','Featured','Workshop Facilitator','Panellist','Lightning'];
+
+// Apply branding
+document.documentElement.style.setProperty('--primary', PRIMARY);
+document.documentElement.style.setProperty('--primary-dark', adjustColor(PRIMARY, -20));
+document.documentElement.style.setProperty('--primary-light', adjustColor(PRIMARY, 50, 0.08));
+
+function adjustColor(hex, lightness, alpha) {
+  if (alpha !== undefined) return hex + Math.round(alpha*255).toString(16).padStart(2,'0');
+  return hex; // simplified — just use hex directly
+}
+
+document.getElementById('app-title').textContent = '🎤 ' + (EVENT_NAME || COMPANY);
+document.getElementById('app-subtitle').textContent = COMPANY;
+
+const STORAGE_KEY = 'eventhive_speaker_programme';
+let DB = { speakers:[], sessions:[], requirements:[], commsLog:[], settings:{} };
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) DB = JSON.parse(raw);
+  } catch(e) {}
+  DB.speakers = DB.speakers || [];
+  DB.sessions = DB.sessions || [];
+  DB.requirements = DB.requirements || [];
+  DB.commsLog = DB.commsLog || [];
+  DB.settings = DB.settings || {};
+}
+
+function save() {
+  DB.settings.lastModified = new Date().toISOString();
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(DB));
+  updateBadges();
+}
+
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+}
+
+function updateBadges() {
+  document.getElementById('badge-speakers').textContent = DB.speakers.length;
+  document.getElementById('badge-sessions').textContent = DB.sessions.length;
+}
+
+// ═══════════════════════════════════════════════
+// VIEW SWITCHING
+// ═══════════════════════════════════════════════
+let currentView = 'speakers';
+function switchView(v) {
+  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  document.getElementById('tab-'+v).classList.add('active');
+  currentView = v;
+  if (v === 'speakers') renderSpeakers();
+  else if (v === 'sessions') renderSessions();
+  else if (v === 'agenda') renderAgenda();
+  else if (v === 'requirements') renderRequirements();
+  else if (v === 'pipeline') renderPipeline();
+  else if (v === 'comms') renderComms();
+  else if (v === 'export') renderExport();
+}
+
+// ═══════════════════════════════════════════════
+// MODAL HELPERS
+// ═══════════════════════════════════════════════
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
+});
+
+// ═══════════════════════════════════════════════
+// SPEAKERS VIEW
+// ═══════════════════════════════════════════════
+let speakerView = 'cards';
+let editingSpeakerId = null;
+let speakerTopics = [];
+
+function setSpeakerView(v) {
+  speakerView = v;
+  document.getElementById('view-cards-btn').classList.toggle('active', v==='cards');
+  document.getElementById('view-list-btn').classList.toggle('active', v==='list');
+  renderSpeakers();
+}
+
+function openSpeakerModal(id) {
+  editingSpeakerId = id || null;
+  speakerTopics = [];
+  clearTopicTags();
+  // Populate type select
+  const sel = document.getElementById('sp-type');
+  sel.innerHTML = SPEAKER_TYPES.map(t => `<option value="${t}">${t}</option>`).join('');
+  if (id) {
+    const sp = DB.speakers.find(s => s.id === id);
+    if (!sp) return;
+    document.getElementById('sp-name').value = sp.name || '';
+    document.getElementById('sp-title').value = sp.title || '';
+    document.getElementById('sp-org').value = sp.org || '';
+    document.getElementById('sp-type').value = sp.type || '';
+    document.getElementById('sp-status').value = sp.status || 'shortlisted';
+    document.getElementById('sp-photo').value = sp.photoUrl || '';
+    document.getElementById('sp-linkedin').value = sp.linkedin || '';
+    document.getElementById('sp-twitter').value = sp.twitter || '';
+    document.getElementById('sp-bio').value = sp.bio || '';
+    document.getElementById('sp-email').value = sp.email || '';
+    document.getElementById('sp-phone').value = sp.phone || '';
+    document.getElementById('sp-fee').value = sp.fee || '';
+    document.getElementById('sp-agency').value = sp.agency || '';
+    document.getElementById('sp-notes').value = sp.notes || '';
+    speakerTopics = sp.topics ? [...sp.topics] : [];
+    speakerTopics.forEach(addTopicTag);
+    document.getElementById('speaker-modal-title').textContent = 'Edit Speaker';
+  } else {
+    ['sp-name','sp-title','sp-org','sp-photo','sp-linkedin','sp-twitter','sp-bio','sp-email','sp-phone','sp-fee','sp-agency','sp-notes'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('sp-status').value = 'shortlisted';
+    document.getElementById('speaker-modal-title').textContent = 'Add Speaker';
+  }
+  openModal('speaker-modal');
+  setTimeout(() => document.getElementById('sp-name').focus(), 100);
+}
+
+function handleTopicKey(e) {
+  if (e.key === 'Enter' || e.key === ',') {
+    e.preventDefault();
+    const val = e.target.value.trim().replace(/,$/,'');
+    if (val && !speakerTopics.includes(val)) {
+      speakerTopics.push(val);
+      addTopicTag(val);
+    }
+    e.target.value = '';
+  }
+}
+
+function addTopicTag(val) {
+  const wrap = document.getElementById('sp-topics-wrap');
+  const input = document.getElementById('sp-topics-input');
+  const tag = document.createElement('span');
+  tag.className = 'tag tag-topic';
+  tag.innerHTML = esc(val) + ' <span style="cursor:pointer;opacity:.6" onclick="removeTopicTag(this,\''+esc(val)+'\')">×</span>';
+  wrap.insertBefore(tag, input);
+}
+
+function removeTopicTag(el, val) {
+  el.parentElement.remove();
+  speakerTopics = speakerTopics.filter(t => t !== val);
+}
+
+function clearTopicTags() {
+  const wrap = document.getElementById('sp-topics-wrap');
+  [...wrap.querySelectorAll('.tag')].forEach(t => t.remove());
+}
+
+function saveSpeaker() {
+  const name = document.getElementById('sp-name').value.trim();
+  if (!name) { alert('Speaker name is required'); return; }
+  const data = {
+    id: editingSpeakerId || uid(),
+    name,
+    title: document.getElementById('sp-title').value.trim(),
+    org: document.getElementById('sp-org').value.trim(),
+    type: document.getElementById('sp-type').value,
+    status: document.getElementById('sp-status').value,
+    photoUrl: document.getElementById('sp-photo').value.trim(),
+    linkedin: document.getElementById('sp-linkedin').value.trim(),
+    twitter: document.getElementById('sp-twitter').value.trim(),
+    bio: document.getElementById('sp-bio').value.trim(),
+    email: document.getElementById('sp-email').value.trim(),
+    phone: document.getElementById('sp-phone').value.trim(),
+    fee: document.getElementById('sp-fee').value.trim(),
+    agency: document.getElementById('sp-agency').value.trim(),
+    notes: document.getElementById('sp-notes').value.trim(),
+    topics: [...speakerTopics],
+    updatedAt: new Date().toISOString(),
+    createdAt: editingSpeakerId ? (DB.speakers.find(s=>s.id===editingSpeakerId)||{}).createdAt : new Date().toISOString()
+  };
+  if (editingSpeakerId) {
+    const idx = DB.speakers.findIndex(s => s.id === editingSpeakerId);
+    if (idx >= 0) DB.speakers[idx] = data;
+  } else {
+    DB.speakers.push(data);
+  }
+  save();
+  closeModal('speaker-modal');
+  renderSpeakers();
+}
+
+function deleteSpeaker(id) {
+  if (!confirm('Delete this speaker? Their session assignments will also be removed.')) return;
+  DB.speakers = DB.speakers.filter(s => s.id !== id);
+  DB.sessions.forEach(sess => { sess.speakers = (sess.speakers||[]).filter(a => a.id !== id); });
+  DB.requirements = DB.requirements.filter(r => r.speakerId !== id);
+  DB.commsLog = DB.commsLog.filter(c => c.speakerId !== id);
+  save();
+  renderSpeakers();
+}
+
+function filterSpeakers() { renderSpeakers(); }
+
+function renderSpeakers() {
+  const q = (document.getElementById('speaker-search').value||'').toLowerCase();
+  const typeF = document.getElementById('speaker-type-filter').value;
+  const statusF = document.getElementById('speaker-status-filter').value;
+
+  // Populate type filter
+  const tf = document.getElementById('speaker-type-filter');
+  const currentVal = tf.value;
+  tf.innerHTML = '<option value="">All types</option>' + SPEAKER_TYPES.map(t => `<option value="${t}"${t===currentVal?' selected':''}>${t}</option>`).join('');
+
+  let list = DB.speakers.filter(s => {
+    if (q && !s.name.toLowerCase().includes(q) && !(s.org||'').toLowerCase().includes(q)) return false;
+    if (typeF && s.type !== typeF) return false;
+    if (statusF && s.status !== statusF) return false;
+    return true;
+  });
+
+  // Stats bar
+  const confirmed = DB.speakers.filter(s => ['confirmed','briefed','presented','thanked'].includes(s.status)).length;
+  document.getElementById('speakers-stats').innerHTML = `
+    <div class="stat-chip"><span class="sc-num">${DB.speakers.length}</span><span class="sc-lbl">Total Speakers</span></div>
+    <div class="stat-chip"><span class="sc-num" style="color:var(--success)">${confirmed}</span><span class="sc-lbl">Confirmed</span></div>
+    <div class="stat-chip"><span class="sc-num" style="color:var(--info)">${DB.speakers.filter(s=>s.status==='invited').length}</span><span class="sc-lbl">Awaiting Reply</span></div>
+    <div class="stat-chip"><span class="sc-num">${DB.sessions.length}</span><span class="sc-lbl">Sessions Planned</span></div>
+  `;
+
+  const cont = document.getElementById('speakers-container');
+  if (!list.length) {
+    cont.innerHTML = `<div class="empty"><div class="empty-icon">🧑‍💼</div><h3>${DB.speakers.length?'No results':'No speakers yet'}</h3><p>${DB.speakers.length?'Try adjusting your filters':'Add your first speaker to get started'}</p>${!DB.speakers.length?'<button class="btn btn-primary" onclick="openSpeakerModal()">+ Add Speaker</button>':''}</div>`;
+    return;
+  }
+
+  if (speakerView === 'cards') {
+    cont.innerHTML = '<div class="card-grid">' + list.map(s => speakerCard(s)).join('') + '</div>';
+  } else {
+    cont.innerHTML = `<div class="table-wrap"><table>
+      <thead><tr><th>Speaker</th><th>Organisation</th><th>Type</th><th>Status</th><th>Topics</th><th></th></tr></thead>
+      <tbody>${list.map(s => `<tr>
+        <td><div class="flex gap-2">${avatarHtml(s,'28px')} <div><div style="font-weight:600">${esc(s.name)}</div><div class="text-xs text-muted">${esc(s.title||'')}</div></div></div></td>
+        <td>${esc(s.org||'—')}</td>
+        <td><span class="tag tag-type">${esc(s.type||'—')}</span></td>
+        <td><span class="badge-status s-${s.status}">${esc(s.status)}</span></td>
+        <td><div class="tags">${(s.topics||[]).slice(0,3).map(t=>`<span class="tag tag-topic">${esc(t)}</span>`).join('')}${(s.topics||[]).length>3?`<span class="tag tag-topic">+${(s.topics||[]).length-3}</span>`:''}</div></td>
+        <td><div class="flex gap-2"><button class="btn btn-ghost btn-sm btn-icon" onclick="viewSpeakerDetail('${s.id}')">👁</button><button class="btn btn-ghost btn-sm btn-icon" onclick="openSpeakerModal('${s.id}')">✏</button><button class="btn btn-ghost btn-sm btn-icon text-danger" onclick="deleteSpeaker('${s.id}')">🗑</button></div></td>
+      </tr>`).join('')}</tbody>
+    </table></div>`;
+  }
+}
+
+function speakerCard(s) {
+  const sessions = DB.sessions.filter(sess => (sess.speakers||[]).some(a => a.id === s.id));
+  return `<div class="card speaker-card">
+    <div class="speaker-card-header">
+      ${avatarHtml(s)}
+      <div class="speaker-card-info">
+        <h3>${esc(s.name)}</h3>
+        <div class="org">${esc(s.title||'')}${s.title&&s.org?' · ':''} ${esc(s.org||'')}</div>
+        <div class="mt-2 flex gap-2">
+          <span class="badge-status s-${s.status}">${esc(s.status)}</span>
+          ${s.type?`<span class="tag tag-type">${esc(s.type)}</span>`:''}
+        </div>
+      </div>
+      <div class="speaker-card-actions">
+        <button class="btn btn-ghost btn-sm btn-icon" onclick="viewSpeakerDetail('${s.id}')" title="View detail">👁</button>
+        <button class="btn btn-ghost btn-sm btn-icon" onclick="openSpeakerModal('${s.id}')" title="Edit">✏</button>
+        <button class="btn btn-ghost btn-sm btn-icon text-danger" onclick="deleteSpeaker('${s.id}')" title="Delete">🗑</button>
+      </div>
+    </div>
+    ${s.bio?`<p class="text-sm text-muted" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:8px">${esc(s.bio)}</p>`:''}
+    ${(s.topics||[]).length?`<div class="tags">${s.topics.slice(0,4).map(t=>`<span class="tag tag-topic">${esc(t)}</span>`).join('')}${s.topics.length>4?`<span class="tag tag-topic">+${s.topics.length-4}</span>`:''}</div>`:''}
+    ${sessions.length?`<div class="text-xs text-muted mt-2">📅 ${sessions.length} session${sessions.length!==1?'s':''}</div>`:''}
+    <div class="social-links">
+      ${s.linkedin?`<a class="social-link" href="${esc(s.linkedin)}" target="_blank">in LinkedIn</a>`:''}
+      ${s.twitter?`<a class="social-link" href="https://twitter.com/${s.twitter.replace('@','')}" target="_blank">𝕏 ${esc(s.twitter)}</a>`:''}
+    </div>
+  </div>`;
+}
+
+function avatarHtml(s, size='52px') {
+  if (s.photoUrl) return `<div class="speaker-avatar" style="width:${size};height:${size};font-size:calc(${size}*.4)"><img src="${esc(s.photoUrl)}" alt="${esc(s.name)}" onerror="this.parentElement.innerHTML='${initials(s.name)}'"></div>`;
+  return `<div class="speaker-avatar" style="width:${size};height:${size};font-size:calc(${size}*.4)">${initials(s.name)}</div>`;
+}
+
+function initials(name) {
+  return name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+}
+
+function viewSpeakerDetail(id) {
+  const s = DB.speakers.find(sp => sp.id === id);
+  if (!s) return;
+  const sessions = DB.sessions.filter(sess => (sess.speakers||[]).some(a => a.id === id));
+  const req = DB.requirements.find(r => r.speakerId === id) || {};
+  const comms = DB.commsLog.filter(c => c.speakerId === id).sort((a,b) => new Date(b.date) - new Date(a.date));
+  document.getElementById('detail-name').textContent = s.name;
+  document.getElementById('detail-edit-btn').onclick = () => { closeModal('speaker-detail-modal'); openSpeakerModal(id); };
+  document.getElementById('speaker-detail-body').innerHTML = `
+    <div style="display:flex;gap:16px;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap">
+      ${avatarHtml(s,'72px')}
+      <div style="flex:1">
+        <h3 style="font-size:1.2rem">${esc(s.name)}</h3>
+        <div class="text-muted">${esc(s.title||'')}${s.title&&s.org?' · ':''} ${esc(s.org||'')}</div>
+        <div class="flex gap-2 mt-2">
+          <span class="badge-status s-${s.status}">${esc(s.status)}</span>
+          ${s.type?`<span class="tag tag-type">${esc(s.type)}</span>`:''}
+        </div>
+        <div class="social-links">
+          ${s.linkedin?`<a class="social-link" href="${esc(s.linkedin)}" target="_blank">in LinkedIn</a>`:''}
+          ${s.twitter?`<a class="social-link" href="https://twitter.com/${s.twitter.replace('@','')}" target="_blank">𝕏 ${esc(s.twitter)}</a>`:''}
+          ${s.email?`<a class="social-link" href="mailto:${esc(s.email)}">✉ ${esc(s.email)}</a>`:''}
+          ${s.phone?`<a class="social-link" href="tel:${esc(s.phone)}">📞 ${esc(s.phone)}</a>`:''}
+        </div>
+      </div>
+    </div>
+    ${s.bio?`<div class="mb-2"><strong>Bio</strong><p class="text-sm text-muted mt-2">${esc(s.bio)}</p></div>`:''}
+    ${(s.topics||[]).length?`<div class="mb-2"><strong>Topics</strong><div class="tags mt-2">${s.topics.map(t=>`<span class="tag tag-topic">${esc(t)}</span>`).join('')}</div></div>`:''}
+    ${sessions.length?`<div class="divider"></div><strong>Sessions (${sessions.length})</strong><div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">${sessions.map(sess=>`<div style="background:var(--surface-2);border-radius:6px;padding:8px 12px"><div class="flex gap-2"><span class="badge-format f-${fmtClass(sess.format)}">${esc(sess.format)}</span><span style="font-size:.85rem;font-weight:600">${esc(sess.title)}</span></div><div class="text-xs text-muted mt-2">${esc(sess.day||'')} ${esc(sess.startTime||'')} · ${esc(sess.track||'')} · ${esc(sess.duration||'')}min</div></div>`).join('')}</div>`:''}
+    ${Object.values(req).some(v=>v&&v!==id)?`<div class="divider"></div><strong>Requirements</strong><div class="req-grid mt-2">${reqFields(req)}</div>`:''}
+    ${s.notes?`<div class="divider"></div><div class="text-xs text-muted">📝 <em>${esc(s.notes)}</em></div>`:''}
+    ${s.fee?`<div class="text-xs text-muted mt-2">💰 Fee: ${esc(s.fee)}${s.agency?` · Agency: ${esc(s.agency)}`:''}</div>`:''}
+  `;
+  openModal('speaker-detail-modal');
+}
+
+function reqFields(req) {
+  const fields = [
+    ['AV Needs',req.avNeeds],['Slides',req.slidesFormat],['Demo',req.demo],
+    ['Dietary',req.dietary],['Arrival',req.arrival],['Departure',req.departure],
+    ['Transfer',req.transfer],['Hotel',req.hotel]
+  ];
+  return fields.filter(([,v])=>v).map(([l,v])=>`<div class="req-field"><label>${l}</label><div class="val">${esc(v)}</div></div>`).join('');
+}
+
+// ═══════════════════════════════════════════════
+// SESSIONS VIEW
+// ═══════════════════════════════════════════════
+let editingSessionId = null;
+
+function openSessionModal(id) {
+  editingSessionId = id || null;
+  // Populate selects
+  const fmtSel = document.getElementById('sess-format');
+  fmtSel.innerHTML = SESSION_FORMATS.map(f => `<option value="${f}">${f}</option>`).join('');
+  const trkSel = document.getElementById('sess-track');
+  trkSel.innerHTML = TRACKS.map(t => `<option value="${t}">${t}</option>`).join('');
+  // Speaker assignments
+  buildSpeakerAssignList(id ? (DB.sessions.find(s=>s.id===id)||{}).speakers : []);
+
+  if (id) {
+    const sess = DB.sessions.find(s => s.id === id);
+    if (!sess) return;
+    document.getElementById('sess-title').value = sess.title || '';
+    document.getElementById('sess-format').value = sess.format || SESSION_FORMATS[0];
+    document.getElementById('sess-track').value = sess.track || TRACKS[0];
+    document.getElementById('sess-day').value = sess.day || 'Day 1';
+    document.getElementById('sess-time').value = sess.startTime || '09:00';
+    document.getElementById('sess-duration').value = sess.duration || 45;
+    document.getElementById('sess-room').value = sess.room || '';
+    document.getElementById('sess-capacity').value = sess.capacity || '';
+    document.getElementById('sess-status').value = sess.status || 'draft';
+    document.getElementById('sess-abstract').value = sess.abstract || '';
+    document.getElementById('sess-notes').value = sess.notes || '';
+    document.getElementById('session-modal-title').textContent = 'Edit Session';
+  } else {
+    ['sess-title','sess-room','sess-abstract','sess-notes'].forEach(i => document.getElementById(i).value = '');
+    document.getElementById('sess-time').value = '09:00';
+    document.getElementById('sess-duration').value = 45;
+    document.getElementById('sess-capacity').value = '';
+    document.getElementById('sess-status').value = 'draft';
+    document.getElementById('session-modal-title').textContent = 'Add Session';
+  }
+  openModal('session-modal');
+  setTimeout(() => document.getElementById('sess-title').focus(), 100);
+}
+
+function buildSpeakerAssignList(assigned) {
+  const cont = document.getElementById('sess-speaker-list');
+  if (!DB.speakers.length) { cont.innerHTML = '<div class="text-sm text-muted" style="padding:8px">No speakers added yet. Add speakers first.</div>'; return; }
+  cont.innerHTML = DB.speakers.map(sp => {
+    const a = (assigned||[]).find(a => a.id === sp.id);
+    return `<div class="speaker-assign-item ${a?'checked':''}" id="sa-${sp.id}">
+      <input type="checkbox" id="sac-${sp.id}" ${a?'checked':''} onchange="toggleSpeakerAssign('${sp.id}')">
+      <label for="sac-${sp.id}" style="flex:1;cursor:pointer;font-size:.85rem">${esc(sp.name)} <span class="text-muted text-xs">${esc(sp.org||'')}</span></label>
+      <select class="sa-role form-control" id="sar-${sp.id}" style="width:120px" ${a?'':' disabled'}>
+        <option value="presenter" ${a&&a.role==='presenter'?'selected':''}>Presenter</option>
+        <option value="moderator" ${a&&a.role==='moderator'?'selected':''}>Moderator</option>
+        <option value="panellist" ${a&&a.role==='panellist'?'selected':''}>Panellist</option>
+        <option value="co-presenter" ${a&&a.role==='co-presenter'?'selected':''}>Co-Presenter</option>
+      </select>
+    </div>`;
+  }).join('');
+}
+
+function toggleSpeakerAssign(spId) {
+  const cb = document.getElementById('sac-'+spId);
+  const item = document.getElementById('sa-'+spId);
+  const role = document.getElementById('sar-'+spId);
+  if (cb.checked) { item.classList.add('checked'); role.disabled = false; }
+  else { item.classList.remove('checked'); role.disabled = true; }
+}
+
+function saveSession() {
+  const title = document.getElementById('sess-title').value.trim();
+  if (!title) { alert('Session title is required'); return; }
+  const speakers = DB.speakers
+    .filter(sp => document.getElementById('sac-'+sp.id)?.checked)
+    .map(sp => ({ id: sp.id, role: document.getElementById('sar-'+sp.id)?.value || 'presenter' }));
+  const data = {
+    id: editingSessionId || uid(),
+    title,
+    format: document.getElementById('sess-format').value,
+    track: document.getElementById('sess-track').value,
+    day: document.getElementById('sess-day').value,
+    startTime: document.getElementById('sess-time').value,
+    duration: parseInt(document.getElementById('sess-duration').value) || 45,
+    room: document.getElementById('sess-room').value.trim(),
+    capacity: parseInt(document.getElementById('sess-capacity').value) || null,
+    status: document.getElementById('sess-status').value,
+    abstract: document.getElementById('sess-abstract').value.trim(),
+    notes: document.getElementById('sess-notes').value.trim(),
+    speakers,
+    updatedAt: new Date().toISOString(),
+    createdAt: editingSessionId ? (DB.sessions.find(s=>s.id===editingSessionId)||{}).createdAt : new Date().toISOString()
+  };
+  if (editingSessionId) {
+    const idx = DB.sessions.findIndex(s => s.id === editingSessionId);
+    if (idx >= 0) DB.sessions[idx] = data;
+  } else {
+    DB.sessions.push(data);
+  }
+  save();
+  closeModal('session-modal');
+  renderSessions();
+}
+
+function deleteSession(id) {
+  if (!confirm('Delete this session?')) return;
+  DB.sessions = DB.sessions.filter(s => s.id !== id);
+  save();
+  renderSessions();
+}
+
+function filterSessions() { renderSessions(); }
+
+function renderSessions() {
+  const q = (document.getElementById('session-search').value||'').toLowerCase();
+  const trackF = document.getElementById('session-track-filter').value;
+  const fmtF = document.getElementById('session-format-filter').value;
+  // Populate filters
+  document.getElementById('session-track-filter').innerHTML = '<option value="">All tracks</option>' + TRACKS.map(t=>`<option value="${t}"${t===trackF?' selected':''}>${t}</option>`).join('');
+  document.getElementById('session-format-filter').innerHTML = '<option value="">All formats</option>' + SESSION_FORMATS.map(f=>`<option value="${f}"${f===fmtF?' selected':''}>${f}</option>`).join('');
+
+  let list = DB.sessions.filter(s => {
+    if (q && !s.title.toLowerCase().includes(q) && !(s.room||'').toLowerCase().includes(q)) return false;
+    if (trackF && s.track !== trackF) return false;
+    if (fmtF && s.format !== fmtF) return false;
+    return true;
+  });
+
+  const confirmed = DB.sessions.filter(s=>s.status==='confirmed').length;
+  document.getElementById('sessions-stats').innerHTML = `
+    <div class="stat-chip"><span class="sc-num">${DB.sessions.length}</span><span class="sc-lbl">Total Sessions</span></div>
+    <div class="stat-chip"><span class="sc-num" style="color:var(--success)">${confirmed}</span><span class="sc-lbl">Confirmed</span></div>
+    <div class="stat-chip"><span class="sc-num">${totalDuration()}</span><span class="sc-lbl">Total Minutes</span></div>
+    <div class="stat-chip"><span class="sc-num">${TRACKS.length}</span><span class="sc-lbl">Tracks</span></div>
+  `;
+
+  const tbody = document.getElementById('sessions-tbody');
+  const empty = document.getElementById('sessions-empty');
+  if (!list.length) {
+    tbody.innerHTML = '';
+    document.querySelector('#sessions-table').style.display = 'none';
+    empty.style.display = 'block';
+    return;
+  }
+  document.querySelector('#sessions-table').style.display = '';
+  empty.style.display = 'none';
+  tbody.innerHTML = list.map(sess => {
+    const sprs = (sess.speakers||[]).map(a => DB.speakers.find(s=>s.id===a.id)).filter(Boolean);
+    return `<tr>
+      <td><div style="font-weight:600;font-size:.85rem">${esc(sess.title)}</div>${sess.abstract?`<div class="text-xs text-muted" style="max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(sess.abstract)}</div>`:''}</td>
+      <td><span class="badge-format f-${fmtClass(sess.format)}">${esc(sess.format)}</span></td>
+      <td>${esc(sess.track)}</td>
+      <td><div class="text-sm">${esc(sess.day)} ${esc(sess.startTime)}</div><div class="text-xs text-muted">${sess.duration}min</div></td>
+      <td><div class="session-row-speakers">${sprs.slice(0,3).map(s=>`<div class="mini-avatar" title="${esc(s.name)}">${initials(s.name)}</div>`).join('')}${sprs.length>3?`<div class="mini-avatar">+${sprs.length-3}</div>`:''}</div></td>
+      <td class="text-sm">${esc(sess.room||'—')}</td>
+      <td><span class="badge-status s-${sess.status==='confirmed'?'confirmed':sess.status==='cancelled'?'shortlisted':'invited'}">${esc(sess.status)}</span></td>
+      <td><div class="flex gap-2"><button class="btn btn-ghost btn-sm btn-icon" onclick="openSessionModal('${sess.id}')">✏</button><button class="btn btn-ghost btn-sm btn-icon text-danger" onclick="deleteSession('${sess.id}')">🗑</button></div></td>
+    </tr>`;
+  }).join('');
+}
+
+function totalDuration() {
+  return DB.sessions.reduce((acc, s) => acc + (s.duration||0), 0);
+}
+
+function fmtClass(fmt) {
+  if (!fmt) return 'break';
+  const f = fmt.toLowerCase();
+  if (f.includes('keynote')) return 'keynote';
+  if (f.includes('panel')) return 'panel';
+  if (f.includes('workshop')) return 'workshop';
+  if (f.includes('lightning')) return 'lightning';
+  if (f.includes('fireside')) return 'fireside';
+  return 'break';
+}
+
+// ═══════════════════════════════════════════════
+// AGENDA BUILDER
+// ═══════════════════════════════════════════════
+let pendingSlot = null; // {day, time, track}
+
+function renderAgenda() {
+  const days = [...new Set(DB.sessions.map(s => s.day || 'Day 1'))].sort();
+  const daySelect = document.getElementById('agenda-day-select');
+  const currentDay = daySelect.value;
+  daySelect.innerHTML = '<option value="all">All Days</option>' + days.map(d => `<option value="${d}"${d===currentDay?' selected':''}>${d}</option>`).join('');
+  const selectedDay = daySelect.value;
+
+  const sessions = DB.sessions.filter(s => selectedDay === 'all' || (s.day || 'Day 1') === selectedDay);
+  const tracks = [...new Set([...TRACKS, ...sessions.map(s => s.track)])].filter(Boolean);
+
+  // Build time slots every 30 minutes
+  const [startH, startM] = DAY_START.split(':').map(Number);
+  const [endH, endM] = DAY_END.split(':').map(Number);
+  const startMins = startH * 60 + startM;
+  const endMins = endH * 60 + endM;
+  const slots = [];
+  for (let m = startMins; m < endMins; m += 30) {
+    const h = Math.floor(m / 60);
+    const min = m % 60;
+    slots.push(`${String(h).padStart(2,'0')}:${String(min).padStart(2,'0')}`);
+  }
+
+  // Detect conflicts
+  const conflicts = detectConflicts(sessions);
+  const conflictBanner = document.getElementById('conflict-banner');
+  if (conflicts.length) {
+    conflictBanner.style.display = '';
+    conflictBanner.innerHTML = `⚠ ${conflicts.length} conflict${conflicts.length!==1?'s':''} detected: ${conflicts.map(c=>`<strong>${esc(c)}</strong>`).join(', ')}`;
+  } else {
+    conflictBanner.style.display = 'none';
+  }
+
+  const grid = document.getElementById('agenda-grid');
+  const totalCols = 1 + tracks.length;
+  grid.style.gridTemplateColumns = `70px repeat(${tracks.length}, 1fr)`;
+
+  let html = '';
+  // Header row
+  html += '<div class="agenda-time-col" style="border-bottom:2px solid var(--primary)">Time</div>';
+  tracks.forEach(t => { html += `<div class="agenda-track-header">${esc(t)}</div>`; });
+
+  // Time slot rows
+  slots.forEach(time => {
+    html += `<div class="agenda-time-col">${formatTime(time)}</div>`;
+    tracks.forEach(track => {
+      const day = selectedDay === 'all' ? null : selectedDay;
+      const session = sessions.find(s => s.startTime === time && s.track === track && (day === null || (s.day||'Day 1') === day));
+      if (session) {
+        const sprs = (session.speakers||[]).map(a => DB.speakers.find(s=>s.id===a.id)).filter(Boolean);
+        const fmtColors = {
+          keynote:'#7C3AED,#EDE9FE', panel:'#1D4ED8,#DBEAFE', workshop:'#065F46,#D1FAE5',
+          'lightning talk':'#92400E,#FEF3C7', 'fireside chat':'#9F1239,#FFE4E6', break:'#475569,#F1F5F9'
+        };
+        const fk = (session.format||'').toLowerCase();
+        const [fg,bg] = (Object.entries(fmtColors).find(([k]) => fk.includes(k))||['','#6366F1,#EEF2FF'])[1].split(',');
+        html += `<div class="agenda-slot has-session">
+          <div class="session-block" style="background:${bg};color:${fg}">
+            <div class="s-title">${esc(session.title)}</div>
+            ${sprs.length?`<div class="s-speaker">${sprs.map(s=>s.name.split(' ')[0]).join(', ')}</div>`:''}
+            <button class="s-remove" onclick="unscheduleSession('${session.id}')" title="Remove from this slot">×</button>
+            ${conflicts.some(c=>c.includes(session.title))?'<div class="conflict-indicator" title="Conflict!"></div>':''}
+          </div>
+        </div>`;
+      } else {
+        html += `<div class="agenda-slot add-slot" onclick="openSlotModal('${time}','${esc(track)}','${selectedDay==='all'?'Day 1':selectedDay}')">+</div>`;
+      }
+    });
+  });
+
+  grid.innerHTML = html;
+}
+
+function detectConflicts(sessions) {
+  const conflicts = [];
+  // Speaker double-booking
+  const speakerSlots = {};
+  sessions.forEach(s => {
+    const key = `${s.day||'Day 1'}_${s.startTime}`;
+    (s.speakers||[]).forEach(a => {
+      if (!speakerSlots[a.id]) speakerSlots[a.id] = {};
+      if (speakerSlots[a.id][key]) {
+        const sp = DB.speakers.find(sp => sp.id === a.id);
+        const name = sp ? sp.name : 'Unknown';
+        if (!conflicts.includes(`${name} double-booked`)) conflicts.push(`${name} double-booked`);
+      }
+      speakerSlots[a.id][key] = s.id;
+    });
+  });
+  // Room double-booking
+  const roomSlots = {};
+  sessions.forEach(s => {
+    if (!s.room) return;
+    const key = `${s.day||'Day 1'}_${s.startTime}_${s.room}`;
+    if (roomSlots[key]) conflicts.push(`Room ${s.room} double-booked`);
+    roomSlots[key] = s.id;
+  });
+  return conflicts;
+}
+
+function openSlotModal(time, track, day) {
+  pendingSlot = { time, track, day };
+  document.getElementById('agenda-slot-title').textContent = `Assign Session — ${formatTime(time)} · ${track}`;
+  const unscheduled = DB.sessions.filter(s => !s.startTime || s.startTime === '');
+  const available = DB.sessions.filter(s => {
+    return !(s.startTime && s.track);
+  });
+  renderSlotSessionList(DB.sessions.filter(s => s.status !== 'cancelled'));
+  document.getElementById('slot-search').value = '';
+  openModal('agenda-slot-modal');
+}
+
+function renderSlotSessionList(sessions) {
+  const list = document.getElementById('slot-session-list');
+  if (!sessions.length) { list.innerHTML = '<div class="text-sm text-muted" style="padding:8px">No sessions available. Add sessions first.</div>'; return; }
+  list.innerHTML = sessions.map(s => {
+    const sprs = (s.speakers||[]).map(a => DB.speakers.find(sp=>sp.id===a.id)).filter(Boolean);
+    return `<div style="background:var(--surface-2);border:1px solid var(--border);border-radius:6px;padding:10px 12px;cursor:pointer;transition:.1s" onclick="assignSessionToSlot('${s.id}')" onmouseover="this.style.background='var(--primary-light)'" onmouseout="this.style.background='var(--surface-2)'">
+      <div class="flex gap-2">
+        <span class="badge-format f-${fmtClass(s.format)}">${esc(s.format)}</span>
+        <span style="font-size:.85rem;font-weight:600;flex:1">${esc(s.title)}</span>
+        <span class="badge-status s-${s.status==='confirmed'?'confirmed':'invited'}">${esc(s.status)}</span>
+      </div>
+      ${sprs.length?`<div class="text-xs text-muted mt-2">🧑‍💼 ${sprs.map(sp=>sp.name).join(', ')}</div>`:''}
+      ${s.startTime?`<div class="text-xs" style="color:var(--warning)">Currently: ${formatTime(s.startTime)} ${s.track?'· '+s.track:''}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function filterSlotSessions(q) {
+  const sessions = DB.sessions.filter(s => s.status !== 'cancelled' && (!q || s.title.toLowerCase().includes(q.toLowerCase())));
+  renderSlotSessionList(sessions);
+}
+
+function assignSessionToSlot(sessionId) {
+  if (!pendingSlot) return;
+  const sess = DB.sessions.find(s => s.id === sessionId);
+  if (!sess) return;
+  sess.startTime = pendingSlot.time;
+  sess.track = pendingSlot.track;
+  sess.day = pendingSlot.day;
+  save();
+  closeModal('agenda-slot-modal');
+  renderAgenda();
+}
+
+function unscheduleSession(sessionId) {
+  const sess = DB.sessions.find(s => s.id === sessionId);
+  if (!sess) return;
+  sess.startTime = '';
+  save();
+  renderAgenda();
+}
+
+function formatTime(time) {
+  if (!time) return '';
+  if (TIME_FORMAT === '12h') {
+    const [h, m] = time.split(':').map(Number);
+    const ampm = h < 12 ? 'AM' : 'PM';
+    const h12 = h % 12 || 12;
+    return `${h12}:${String(m).padStart(2,'0')} ${ampm}`;
+  }
+  return time;
+}
+
+// ═══════════════════════════════════════════════
+// REQUIREMENTS
+// ═══════════════════════════════════════════════
+let editingReqSpeakerId = null;
+
+function openReqModal(speakerId) {
+  editingReqSpeakerId = speakerId;
+  const sp = DB.speakers.find(s => s.id === speakerId);
+  if (!sp) return;
+  const req = DB.requirements.find(r => r.speakerId === speakerId) || {};
+  document.getElementById('req-modal-title').textContent = `Requirements: ${sp.name}`;
+  document.getElementById('req-av').value = req.avNeeds || '';
+  document.getElementById('req-slides').value = req.slidesFormat || '';
+  document.getElementById('req-demo').value = req.demo || '';
+  document.getElementById('req-dietary').value = req.dietary || '';
+  document.getElementById('req-arrival').value = req.arrival || '';
+  document.getElementById('req-departure').value = req.departure || '';
+  document.getElementById('req-transfer').value = req.transfer || '';
+  document.getElementById('req-hotel').value = req.hotel || '';
+  document.getElementById('req-special').value = req.special || '';
+  document.getElementById('req-confirmed').checked = !!req.confirmed;
+  openModal('req-modal');
+}
+
+function saveRequirements() {
+  const data = {
+    speakerId: editingReqSpeakerId,
+    avNeeds: document.getElementById('req-av').value.trim(),
+    slidesFormat: document.getElementById('req-slides').value.trim(),
+    demo: document.getElementById('req-demo').value.trim(),
+    dietary: document.getElementById('req-dietary').value.trim(),
+    arrival: document.getElementById('req-arrival').value.trim(),
+    departure: document.getElementById('req-departure').value.trim(),
+    transfer: document.getElementById('req-transfer').value.trim(),
+    hotel: document.getElementById('req-hotel').value.trim(),
+    special: document.getElementById('req-special').value.trim(),
+    confirmed: document.getElementById('req-confirmed').checked,
+    updatedAt: new Date().toISOString()
+  };
+  const idx = DB.requirements.findIndex(r => r.speakerId === editingReqSpeakerId);
+  if (idx >= 0) DB.requirements[idx] = data;
+  else DB.requirements.push(data);
+  save();
+  closeModal('req-modal');
+  renderRequirements();
+}
+
+function reqCompletion(req) {
+  const fields = ['avNeeds','slidesFormat','demo','dietary','arrival','departure','transfer','hotel'];
+  const filled = fields.filter(f => req[f]).length;
+  return Math.round((filled / fields.length) * 100);
+}
+
+function filterRequirements() { renderRequirements(); }
+
+function renderRequirements() {
+  const q = (document.getElementById('req-search').value||'').toLowerCase();
+  const f = document.getElementById('req-filter').value;
+
+  const speakers = DB.speakers.filter(s => {
+    if (q && !s.name.toLowerCase().includes(q)) return false;
+    if (f === 'incomplete') {
+      const req = DB.requirements.find(r => r.speakerId === s.id) || {};
+      return !req.confirmed;
+    }
+    if (f === 'confirmed') {
+      const req = DB.requirements.find(r => r.speakerId === s.id) || {};
+      return req.confirmed;
+    }
+    return true;
+  });
+
+  // Summary stats
+  const outstanding = DB.speakers.filter(s => {
+    const req = DB.requirements.find(r => r.speakerId === s.id) || {};
+    return !req.confirmed;
+  }).length;
+  const withDietary = DB.requirements.filter(r => r.dietary).length;
+  const withTravel = DB.requirements.filter(r => r.arrival || r.departure).length;
+  const withHotel = DB.requirements.filter(r => r.hotel).length;
+
+  document.getElementById('req-summary').innerHTML = `
+    <div class="req-stat"><div class="num" style="color:var(--warning)">${outstanding}</div><div class="lbl">Outstanding</div></div>
+    <div class="req-stat"><div class="num" style="color:var(--success)">${DB.speakers.length - outstanding}</div><div class="lbl">Confirmed</div></div>
+    <div class="req-stat"><div class="num">${withDietary}</div><div class="lbl">Dietary Noted</div></div>
+    <div class="req-stat"><div class="num">${withTravel}</div><div class="lbl">Travel Arranged</div></div>
+    <div class="req-stat"><div class="num">${withHotel}</div><div class="lbl">Hotel Booked</div></div>
+  `;
+
+  const cont = document.getElementById('req-list');
+  if (!speakers.length) { cont.innerHTML = '<div class="empty"><div class="empty-icon">📋</div><h3>No speakers match your filter</h3></div>'; return; }
+
+  cont.innerHTML = speakers.map(s => {
+    const req = DB.requirements.find(r => r.speakerId === s.id) || {};
+    const pct = reqCompletion(req);
+    const sessionNames = DB.sessions.filter(sess => (sess.speakers||[]).some(a=>a.id===s.id)).map(sess=>sess.title);
+    return `<div class="req-card card">
+      <div class="req-card-header" onclick="toggleReqCard('${s.id}')">
+        ${avatarHtml(s,'36px')}
+        <div style="flex:1;margin-left:10px">
+          <div style="font-weight:600;font-size:.9rem">${esc(s.name)}</div>
+          <div class="text-xs text-muted">${sessionNames.length?sessionNames[0]+(sessionNames.length>1?' +'+( sessionNames.length-1)+' more':''):'No sessions assigned'}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          ${req.confirmed?'<span class="badge-status s-confirmed">Confirmed ✓</span>':`<div>
+            <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+            <div class="text-xs text-muted" style="margin-top:2px">${pct}% complete</div>
+          </div>`}
+          <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();openReqModal('${s.id}')">Edit</button>
+          <span style="color:var(--text-3);font-size:1rem">▾</span>
+        </div>
+      </div>
+      <div class="req-card-body" id="reqbody-${s.id}">
+        <div class="req-grid">
+          ${reqFieldRow('AV Needs', req.avNeeds)}
+          ${reqFieldRow('Slides Format', req.slidesFormat)}
+          ${reqFieldRow('Demo Needs', req.demo)}
+          ${reqFieldRow('Dietary', req.dietary)}
+          ${reqFieldRow('Arrival', req.arrival)}
+          ${reqFieldRow('Departure', req.departure)}
+          ${reqFieldRow('Airport Transfer', req.transfer)}
+          ${reqFieldRow('Accommodation', req.hotel)}
+          ${req.special?reqFieldRow('Special Requests', req.special):''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function reqFieldRow(label, val) {
+  return `<div class="req-field"><label>${label}</label><div class="val">${val?esc(val):'<span class="text-muted">Not specified</span>'}</div></div>`;
+}
+
+function toggleReqCard(speakerId) {
+  const body = document.getElementById('reqbody-'+speakerId);
+  body.classList.toggle('open');
+}
+
+// ═══════════════════════════════════════════════
+// PIPELINE (KANBAN)
+// ═══════════════════════════════════════════════
+const PIPELINE_STAGES = ['shortlisted','invited','confirmed','briefed','presented','thanked'];
+const STAGE_LABELS = { shortlisted:'Shortlisted', invited:'Invited', confirmed:'Confirmed', briefed:'Briefed', presented:'Presented', thanked:'Thanked' };
+const STAGE_COLORS = { shortlisted:'#6B7280', invited:'#3B82F6', confirmed:'#10B981', briefed:'#16A34A', presented:'#F59E0B', thanked:'#94A3B8' };
+let draggingId = null;
+
+function renderPipeline() {
+  const board = document.getElementById('kanban-board');
+  board.innerHTML = PIPELINE_STAGES.map(stage => {
+    const speakers = DB.speakers.filter(s => s.status === stage);
+    return `<div class="kanban-col" id="col-${stage}" ondragover="dragOver(event,'${stage}')" ondrop="drop(event,'${stage}')" ondragleave="dragLeave(event)">
+      <div class="kanban-header" style="border-left:3px solid ${STAGE_COLORS[stage]}">
+        ${STAGE_LABELS[stage]}
+        <span class="kanban-count">${speakers.length}</span>
+      </div>
+      <div class="kanban-body" id="col-body-${stage}">
+        ${speakers.map(s => kanbanCard(s)).join('')}
+        ${!speakers.length?`<div style="color:var(--text-3);font-size:.75rem;text-align:center;padding:12px">Drop speakers here</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function kanbanCard(s) {
+  const sessions = DB.sessions.filter(sess => (sess.speakers||[]).some(a => a.id === s.id));
+  return `<div class="kanban-card" draggable="true" id="kc-${s.id}"
+    ondragstart="dragStart(event,'${s.id}')" ondragend="dragEnd(event)">
+    <div style="display:flex;align-items:center;gap:8px">
+      ${avatarHtml(s,'28px')}
+      <div style="flex:1;min-width:0">
+        <h4>${esc(s.name)}</h4>
+        <div class="kc-org">${esc(s.org||s.title||'')}</div>
+      </div>
+    </div>
+    ${s.type?`<div class="mt-2"><span class="tag tag-type">${esc(s.type)}</span></div>`:''}
+    ${sessions.length?`<div class="text-xs text-muted mt-2">📅 ${sessions.length} session${sessions.length!==1?'s':''}</div>`:''}
+    <div class="flex gap-2 mt-2">
+      <button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:.72rem" onclick="openSpeakerModal('${s.id}')">Edit</button>
+      <select style="font-size:.72rem;padding:2px 6px;border:1px solid var(--border);border-radius:4px;outline:none;cursor:pointer" onchange="moveSpeaker('${s.id}',this.value)">
+        ${PIPELINE_STAGES.map(st => `<option value="${st}"${st===s.status?' selected':''}>${STAGE_LABELS[st]}</option>`).join('')}
+      </select>
+    </div>
+  </div>`;
+}
+
+function dragStart(e, id) {
+  draggingId = id;
+  e.dataTransfer.effectAllowed = 'move';
+  setTimeout(() => { const el = document.getElementById('kc-'+id); if(el) el.classList.add('dragging'); }, 0);
+}
+function dragEnd(e) {
+  if (draggingId) { const el = document.getElementById('kc-'+draggingId); if(el) el.classList.remove('dragging'); }
+  document.querySelectorAll('.kanban-col').forEach(c => c.classList.remove('drag-over'));
+}
+function dragOver(e, stage) {
+  e.preventDefault();
+  document.querySelectorAll('.kanban-col').forEach(c => c.classList.remove('drag-over'));
+  document.getElementById('col-'+stage)?.classList.add('drag-over');
+}
+function dragLeave(e) {
+  if (!e.currentTarget.contains(e.relatedTarget)) e.currentTarget.classList.remove('drag-over');
+}
+function drop(e, stage) {
+  e.preventDefault();
+  document.querySelectorAll('.kanban-col').forEach(c => c.classList.remove('drag-over'));
+  if (draggingId) moveSpeaker(draggingId, stage);
+  draggingId = null;
+}
+function moveSpeaker(id, status) {
+  const sp = DB.speakers.find(s => s.id === id);
+  if (!sp || sp.status === status) return;
+  sp.status = status;
+  sp.updatedAt = new Date().toISOString();
+  save();
+  renderPipeline();
+}
+
+// ═══════════════════════════════════════════════
+// COMMS LOG
+// ═══════════════════════════════════════════════
+let editingCommsId = null;
+
+function openCommsModal(id) {
+  editingCommsId = id || null;
+  const sel = document.getElementById('comms-speaker');
+  sel.innerHTML = DB.speakers.map(s => `<option value="${s.id}">${esc(s.name)} — ${esc(s.org||'')}</option>`).join('');
+  if (id) {
+    const entry = DB.commsLog.find(c => c.id === id);
+    if (!entry) return;
+    sel.value = entry.speakerId;
+    document.getElementById('comms-date').value = entry.date;
+    document.getElementById('comms-type').value = entry.type;
+    document.getElementById('comms-subject').value = entry.subject || '';
+    document.getElementById('comms-notes').value = entry.notes || '';
+    document.getElementById('comms-followup').value = entry.followUpDate || '';
+  } else {
+    document.getElementById('comms-date').value = new Date().toISOString().slice(0,10);
+    document.getElementById('comms-type').value = 'email';
+    ['comms-subject','comms-notes','comms-followup'].forEach(i => document.getElementById(i).value = '');
+  }
+  openModal('comms-modal');
+}
+
+function saveComms() {
+  const speakerId = document.getElementById('comms-speaker').value;
+  const date = document.getElementById('comms-date').value;
+  const subject = document.getElementById('comms-subject').value.trim();
+  if (!speakerId || !date || !subject) { alert('Speaker, date and subject are required'); return; }
+  const data = {
+    id: editingCommsId || uid(),
+    speakerId,
+    date,
+    type: document.getElementById('comms-type').value,
+    subject,
+    notes: document.getElementById('comms-notes').value.trim(),
+    followUpDate: document.getElementById('comms-followup').value,
+    createdAt: editingCommsId ? (DB.commsLog.find(c=>c.id===editingCommsId)||{}).createdAt : new Date().toISOString()
+  };
+  if (editingCommsId) {
+    const idx = DB.commsLog.findIndex(c => c.id === editingCommsId);
+    if (idx >= 0) DB.commsLog[idx] = data;
+  } else {
+    DB.commsLog.push(data);
+  }
+  save();
+  closeModal('comms-modal');
+  renderComms();
+}
+
+function deleteComms(id) {
+  if (!confirm('Delete this log entry?')) return;
+  DB.commsLog = DB.commsLog.filter(c => c.id !== id);
+  save();
+  renderComms();
+}
+
+function renderComms() {
+  // Populate filter
+  const spFilter = document.getElementById('comms-speaker-filter');
+  const currentSp = spFilter.value;
+  spFilter.innerHTML = '<option value="">All speakers</option>' + DB.speakers.map(s => `<option value="${s.id}"${s.id===currentSp?' selected':''}>${esc(s.name)}</option>`).join('');
+  const typeFilter = document.getElementById('comms-type-filter').value;
+
+  // Follow-up dashboard
+  const today = new Date().toISOString().slice(0,10);
+  const upcoming = DB.commsLog
+    .filter(c => c.followUpDate && c.followUpDate >= today)
+    .sort((a,b) => a.followUpDate.localeCompare(b.followUpDate))
+    .slice(0,5);
+  const fuList = document.getElementById('followup-list');
+  if (!upcoming.length) {
+    fuList.innerHTML = '<div class="text-sm text-muted" style="padding:8px">No upcoming follow-ups.</div>';
+  } else {
+    fuList.innerHTML = upcoming.map(c => {
+      const sp = DB.speakers.find(s => s.id === c.speakerId);
+      const isOverdue = c.followUpDate < today;
+      return `<div class="followup-item">
+        <span class="fi-date" style="color:${isOverdue?'var(--danger)':'var(--warning)'}">${c.followUpDate}</span>
+        <div class="fi-info">
+          <div class="fi-speaker">${sp?esc(sp.name):'Unknown speaker'}</div>
+          <div class="fi-subject">${esc(c.subject)}</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="openCommsModal('${c.id}')">Edit</button>
+      </div>`;
+    }).join('');
+  }
+
+  // Main log
+  let entries = DB.commsLog;
+  if (currentSp) entries = entries.filter(c => c.speakerId === currentSp);
+  if (typeFilter) entries = entries.filter(c => c.type === typeFilter);
+  entries = [...entries].sort((a,b) => b.date.localeCompare(a.date));
+
+  const cont = document.getElementById('comms-log');
+  if (!entries.length) { cont.innerHTML = '<div class="empty"><div class="empty-icon">💬</div><h3>No communications logged</h3><p>Track emails, calls and meetings with your speakers</p><button class="btn btn-primary" onclick="openCommsModal()">+ Log Communication</button></div>'; return; }
+
+  // Group by speaker
+  const bySpeaker = {};
+  entries.forEach(c => {
+    if (!bySpeaker[c.speakerId]) bySpeaker[c.speakerId] = [];
+    bySpeaker[c.speakerId].push(c);
+  });
+
+  cont.innerHTML = Object.entries(bySpeaker).map(([spId, comms]) => {
+    const sp = DB.speakers.find(s => s.id === spId);
+    return `<div style="margin-bottom:20px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        ${sp?avatarHtml(sp,'32px'):''}
+        <strong>${sp?esc(sp.name):'Unknown Speaker'}</strong>
+        <span class="text-xs text-muted">${comms.length} log${comms.length!==1?'s':''}</span>
+      </div>
+      <div class="comms-timeline">${comms.map(c => `<div class="comms-entry">
+        <div class="comms-entry-card">
+          <div class="ce-meta">
+            <span>${c.date}</span>
+            <span class="comms-type-badge ct-${c.type}">${c.type}</span>
+          </div>
+          <div class="ce-subject">${esc(c.subject)}</div>
+          ${c.notes?`<div class="ce-notes">${esc(c.notes)}</div>`:''}
+          ${c.followUpDate?`<div class="comms-followup">📅 Follow up: ${c.followUpDate}</div>`:''}
+          <div style="margin-top:6px;display:flex;gap:4px">
+            <button class="btn btn-ghost btn-sm" onclick="openCommsModal('${c.id}')">Edit</button>
+            <button class="btn btn-ghost btn-sm text-danger" onclick="deleteComms('${c.id}')">Delete</button>
+          </div>
+        </div>
+      </div>`).join('')}</div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════
+// EXPORT & RUN SHEET BRIDGE
+// ═══════════════════════════════════════════════
+function renderExport() {
+  document.getElementById('runsheet-status').textContent = '';
+}
+
+function pushToRunSheet() {
+  const confirmed = DB.sessions.filter(s => s.startTime && s.track);
+  if (!confirmed.length) { alert('No scheduled sessions to push. Assign sessions to time slots in the Agenda view first.'); return; }
+  const eventSlug = COMPANY.toLowerCase().replace(/[^a-z0-9]/g,'-');
+  const key = `eventhive_event_${eventSlug}_runsheet`;
+  const existing = JSON.parse(localStorage.getItem(key) || '{}');
+  const cues = confirmed.map(s => {
+    const sprs = (s.speakers||[]).map(a => DB.speakers.find(sp=>sp.id===a.id)).filter(Boolean);
+    const req = DB.requirements.find(r => r.speakerId === ((s.speakers||[])[0]||{}).id) || {};
+    return {
+      id: s.id,
+      track: s.track,
+      startTime: s.startTime,
+      day: s.day || 'Day 1',
+      duration: s.duration,
+      title: s.title,
+      format: s.format,
+      speakers: sprs.map(sp => sp.name).join(', '),
+      room: s.room || '',
+      avNeeds: req.avNeeds || '',
+      notes: `${sprs.map(sp=>sp.name).join(', ')}${req.avNeeds?' | AV: '+req.avNeeds:''}`,
+      type: 'session',
+      status: s.status,
+      sourceId: s.id
+    };
+  });
+  existing.cues = existing.cues ? [...existing.cues.filter(c => !cues.some(nc => nc.sourceId === c.sourceId)), ...cues] : cues;
+  existing.lastUpdatedFromSpeakerProgramme = new Date().toISOString();
+  localStorage.setItem(key, JSON.stringify(existing));
+  const msg = `✓ ${cues.length} session${cues.length!==1?'s':''} pushed to Run Sheet (key: ${key})`;
+  document.getElementById('runsheet-status').textContent = msg;
+  alert(msg);
+}
+
+function printSpeakerDirectory() {
+  const speakers = DB.speakers.filter(s => ['confirmed','briefed','presented','thanked'].includes(s.status));
+  if (!speakers.length) { alert('No confirmed speakers to print. Confirm speakers in the Pipeline first.'); return; }
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html><head><title>Speaker Directory — ${esc(EVENT_NAME)}</title>
+  <style>
+    body{font-family:Georgia,serif;max-width:800px;margin:0 auto;padding:20px;color:#222}
+    h1{font-size:1.8rem;margin-bottom:4px}
+    .subtitle{color:#666;margin-bottom:24px}
+    .speaker{border-bottom:1px solid #ddd;padding:20px 0;display:flex;gap:20px;break-inside:avoid}
+    .avatar{width:60px;height:60px;border-radius:50%;background:#EEF2FF;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.2rem;color:#6366F1;flex-shrink:0}
+    .info h2{font-size:1.1rem;margin:0 0 2px}
+    .info .role{color:#666;font-size:.9rem;margin-bottom:8px}
+    .bio{font-size:.88rem;line-height:1.5;color:#444}
+    .topics{margin-top:8px;display:flex;flex-wrap:wrap;gap:4px}
+    .topic{padding:2px 8px;background:#EEF2FF;color:#6366F1;border-radius:12px;font-size:.78rem}
+    @media print{@page{margin:2cm}}
+  </style></head><body>
+  <h1>${esc(EVENT_NAME)}</h1>
+  <div class="subtitle">Speaker Directory — ${speakers.length} confirmed speaker${speakers.length!==1?'s':''}</div>
+  ${speakers.map(s=>`<div class="speaker">
+    <div class="avatar">${initials(s.name)}</div>
+    <div class="info">
+      <h2>${esc(s.name)}</h2>
+      <div class="role">${esc(s.title||'')}${s.title&&s.org?' · ':''} ${esc(s.org||'')}</div>
+      ${s.bio?`<div class="bio">${esc(s.bio)}</div>`:''}
+      ${(s.topics||[]).length?`<div class="topics">${s.topics.map(t=>`<span class="topic">${esc(t)}</span>`).join('')}</div>`:''}
+    </div>
+  </div>`).join('')}
+  </body></html>`);
+  win.document.close();
+  setTimeout(() => win.print(), 500);
+}
+
+function printSessionSchedule() {
+  const sessions = [...DB.sessions].sort((a,b) => {
+    const da = (a.day||'Day 1'), db = (b.day||'Day 1');
+    if (da !== db) return da.localeCompare(db);
+    return (a.startTime||'').localeCompare(b.startTime||'');
+  });
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html><head><title>Session Schedule — ${esc(EVENT_NAME)}</title>
+  <style>
+    body{font-family:-apple-system,sans-serif;max-width:900px;margin:0 auto;padding:20px;color:#222;font-size:13px}
+    h1{font-size:1.5rem;margin-bottom:4px}
+    .subtitle{color:#666;margin-bottom:20px}
+    .day-group{margin-bottom:24px}
+    .day-header{font-size:1rem;font-weight:700;padding:6px 12px;background:#EEF2FF;color:#6366F1;border-radius:4px;margin-bottom:10px}
+    table{width:100%;border-collapse:collapse}
+    th{background:#F8FAFC;padding:8px 10px;text-align:left;font-size:.78rem;color:#666;border-bottom:2px solid #E2E8F0}
+    td{padding:8px 10px;border-bottom:1px solid #E2E8F0;vertical-align:top}
+    .badge{padding:2px 7px;border-radius:12px;font-size:.72rem;font-weight:600}
+    @media print{@page{margin:1.5cm;size:A4 landscape}}
+  </style></head><body>
+  <h1>${esc(EVENT_NAME)}</h1>
+  <div class="subtitle">Session Schedule — ${sessions.length} session${sessions.length!==1?'s':''}</div>
+  ${groupByDay(sessions).map(([day, daySessions]) => `
+    <div class="day-group">
+      <div class="day-header">${day}</div>
+      <table><thead><tr><th>Time</th><th>Session</th><th>Format</th><th>Track</th><th>Room</th><th>Speakers</th></tr></thead>
+      <tbody>${daySessions.map(s => {
+        const sprs = (s.speakers||[]).map(a => DB.speakers.find(sp=>sp.id===a.id)).filter(Boolean);
+        return `<tr>
+          <td>${esc(s.startTime||'TBC')}</td>
+          <td><strong>${esc(s.title)}</strong>${s.abstract?`<br><span style="color:#666;font-size:.8em">${esc(s.abstract.slice(0,100))}${s.abstract.length>100?'…':''}</span>`:''}</td>
+          <td>${esc(s.format||'')}</td>
+          <td>${esc(s.track||'')}</td>
+          <td>${esc(s.room||'')}</td>
+          <td>${sprs.map(sp=>sp.name).join(', ')}</td>
+        </tr>`;
+      }).join('')}</tbody></table>
+    </div>
+  `).join('')}
+  </body></html>`);
+  win.document.close();
+  setTimeout(() => win.print(), 500);
+}
+
+function groupByDay(sessions) {
+  const map = {};
+  sessions.forEach(s => {
+    const day = s.day || 'Day 1';
+    if (!map[day]) map[day] = [];
+    map[day].push(s);
+  });
+  return Object.entries(map).sort(([a],[b]) => a.localeCompare(b));
+}
+
+function exportSpeakersCSV() {
+  const headers = ['Name','Title','Organisation','Type','Status','Email','Phone','LinkedIn','Twitter','Bio','Topics','Fee'];
+  const rows = DB.speakers.map(s => [
+    s.name, s.title||'', s.org||'', s.type||'', s.status||'', s.email||'', s.phone||'',
+    s.linkedin||'', s.twitter||'', (s.bio||'').replace(/\n/g,' '), (s.topics||[]).join('; '), s.fee||''
+  ]);
+  downloadCSV([headers, ...rows], 'speakers.csv');
+}
+
+function exportSessionsCSV() {
+  const headers = ['Title','Format','Track','Day','Start Time','Duration (min)','Room','Capacity','Status','Speakers','Abstract'];
+  const rows = DB.sessions.map(s => {
+    const sprs = (s.speakers||[]).map(a => DB.speakers.find(sp=>sp.id===a.id)).filter(Boolean).map(sp=>sp.name);
+    return [s.title, s.format||'', s.track||'', s.day||'', s.startTime||'', s.duration||'', s.room||'', s.capacity||'', s.status||'', sprs.join('; '), (s.abstract||'').replace(/\n/g,' ')];
+  });
+  downloadCSV([headers, ...rows], 'sessions.csv');
+}
+
+function downloadCSV(rows, filename) {
+  const csv = rows.map(r => r.map(cell => `"${String(cell||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = filename;
+  a.click();
+}
+
+function exportAllJSON() {
+  const data = JSON.stringify(DB, null, 2);
+  const a = document.createElement('a');
+  a.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(data);
+  a.download = 'speaker-programme-backup.json';
+  a.click();
+}
+
+function importJSON(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!confirm(`Import ${(data.speakers||[]).length} speakers and ${(data.sessions||[]).length} sessions? This will overwrite current data.`)) return;
+      DB = data;
+      save();
+      renderSpeakers();
+      alert('Import successful!');
+    } catch(err) { alert('Invalid JSON file: ' + err.message); }
+  };
+  reader.readAsText(file);
+}
+
+// ═══════════════════════════════════════════════
+// SAMPLE DATA (SP.10)
+// ═══════════════════════════════════════════════
+function loadSampleData() {
+  if (DB.speakers.length > 0 && !confirm('Load sample data? This will replace all existing data.')) return;
+
+  const speakerData = [
+    {name:'Dr Sarah Mitchell',title:'Chief AI Officer',org:'FutureTech Labs',type:'Keynote',status:'confirmed',bio:'Dr Sarah Mitchell leads AI research at FutureTech Labs, with over 15 years building machine learning systems for enterprise clients. Her work on ethical AI has been published in Nature and Science.',topics:['Artificial Intelligence','Machine Learning','Ethics','Future of Work'],email:'sarah.mitchell@futuretech.ai',linkedin:'https://linkedin.com/in/sarah-mitchell'},
+    {name:'James Okafor',title:'Global Head of Events',org:'Eventex International',type:'Keynote',status:'confirmed',bio:'James has produced over 200 large-scale events across 30 countries. He is a TEDx organiser and frequent speaker on the future of live experiences.',topics:['Event Production','Global Events','Audience Experience'],email:'james@eventex.com',twitter:'@jamesokafor'},
+    {name:'Priya Sharma',title:'Head of Innovation',org:'Nexus Consulting',type:'Featured',status:'confirmed',bio:'Priya leads innovation strategy for FTSE 100 clients, focusing on the intersection of technology and human behaviour.',topics:['Innovation','Digital Transformation','Behavioural Economics'],email:'priya.sharma@nexus.co'},
+    {name:'Tom Reynolds',title:'Founder & CEO',org:'EventStack',type:'Featured',status:'confirmed',bio:'Tom built EventStack from a bootstrapped side project to a $50M ARR SaaS platform. He speaks candidly about the realities of scaling a startup.',topics:['SaaS','Startup Growth','Event Technology'],email:'tom@eventstack.io',twitter:'@tomreynolds'},
+    {name:'Dr Amara Diallo',title:'Professor of Sustainability',org:'University of Oxford',type:'Keynote',status:'confirmed',bio:'An internationally recognised authority on sustainable event management, Dr Diallo advises governments and the UN on climate policy for the live events sector.',topics:['Sustainability','Carbon Neutral Events','Policy','Climate Action'],email:'a.diallo@ox.ac.uk'},
+    {name:'Kenji Watanabe',title:'Experience Design Lead',org:'Pixel & Co',type:'Workshop Facilitator',status:'confirmed',bio:'Kenji creates immersive event experiences blending physical and digital. His designs have been featured at Cannes Lions, Davos, and SXSW.',topics:['UX Design','Immersive Experience','Technology','Creative Direction']},
+    {name:'Leila Hassan',title:'CEO',org:'GreenEvent Group',type:'Panellist',status:'confirmed',bio:'Leila runs Europe\'s largest sustainable event agency, having reduced client carbon footprints by an average of 68% across 400 events.',topics:['Sustainable Events','Supply Chain','Operations'],email:'leila@greenevent.eu'},
+    {name:'Carlos Mendez',title:'Data & Analytics Director',org:'Insight Events',type:'Featured',status:'confirmed',bio:'Carlos brings data science to event management, helping clients measure true ROI and improve audience experiences through real-time analytics.',topics:['Data Analytics','ROI Measurement','Event Tech','AI'],email:'carlos.mendez@insight.events'},
+    {name:'Sophie Laurent',title:'Community Director',org:'Eventbrite Europe',type:'Panellist',status:'briefed',bio:'Sophie leads community strategy across Eventbrite\'s European markets, working with 50,000+ event creators.',topics:['Community Building','Creator Economy','Marketing'],twitter:'@sophielaurent'},
+    {name:'Marcus Williams',title:'Head of Production',org:'Spectrum Live',status:'confirmed',type:'Workshop Facilitator',bio:'Marcus has overseen AV production for events attended by heads of state and global CEOs. He trains the next generation of technical producers.',topics:['AV Production','Technical Direction','Crew Management']},
+    {name:'Dr Aisha Nkrumah',title:'AI Ethics Researcher',org:'DeepMind',type:'Panellist',status:'confirmed',bio:'Aisha\'s research focuses on responsible AI deployment in commercial settings. She sits on the EU\'s AI advisory panel.',topics:['AI Ethics','Policy','Responsible Tech'],email:'a.nkrumah@deepmind.com'},
+    {name:'Ben Tucker',title:'Founder',org:'Crowd Science',type:'Lightning',status:'invited',bio:'Ben\'s company uses crowd behaviour science to optimise venue flow, queue management, and audience engagement.',topics:['Crowd Science','Behavioural Data','Safety']},
+    {name:'Nina Kowalski',title:'Head of Sponsorship',org:'Brandspace',type:'Panellist',status:'confirmed',bio:'Nina has negotiated over £200M in sponsorship deals for major sporting and cultural events.',topics:['Sponsorship','Partnerships','Commercial Strategy']},
+    {name:'Raj Patel',title:'CTO',org:'Holostream',type:'Featured',status:'confirmed',bio:'Raj is building the infrastructure for hybrid events, having streamed to over 2 million concurrent viewers at the Paris Tech Summit.',topics:['Streaming','Hybrid Events','Infrastructure','CDN']},
+    {name:'Emma Johansson',title:'Head of Wellbeing',org:'Event People Academy',type:'Workshop Facilitator',status:'confirmed',bio:'Emma advocates for mental health and wellbeing in the events industry and runs evidence-based programmes for event professionals.',topics:['Wellbeing','Mental Health','Industry Culture'],email:'emma@eventpeopleacademy.com'},
+    {name:'David Osei',title:'Creative Director',org:'Ritual Studio',type:'Featured',status:'confirmed',bio:'David creates visual identities and spatial experiences for major cultural events. Past clients include Glastonbury, Frieze, and the V&A.',topics:['Creative Direction','Brand Experience','Spatial Design']},
+    {name:'Fatima Al-Rashid',title:'VP Sales',org:'Eventsforce',type:'Lightning',status:'shortlisted',bio:'Fatima leads commercial strategy for one of the UK\'s largest event registration platforms.',topics:['Registration Tech','Sales','Event Tech']},
+    {name:'Luke Patterson',title:'Safety & Security Consultant',org:'Crowdsafe',type:'Panellist',status:'confirmed',bio:'Luke advises on crowd safety for events ranging from music festivals to state visits.',topics:['Crowd Safety','Security','Risk Management']},
+    {name:'Mei Lin',title:'Head of Partnerships',org:'TikTok Events',type:'Featured',status:'confirmed',bio:'Mei leads TikTok\'s global events partnerships, bringing creator-led content to live experiences.',topics:['Social Media','Creator Economy','TikTok','Content']},
+    {name:'Prof. Ian Blackwell',title:'Chair of Event Studies',org:'Leeds Beckett University',type:'Keynote',status:'confirmed',bio:'Professor Blackwell is the author of five textbooks on event management and the founding editor of the Journal of Event Science.',topics:['Academic Research','Education','Industry Standards']},
+    {name:'Zara Ahmed',title:'Sustainability Consultant',org:'Net Zero Events',type:'Workshop Facilitator',status:'briefed',bio:'Zara helps event agencies achieve net zero targets through supply chain mapping, energy auditing, and waste reduction.',topics:['Net Zero','Carbon Auditing','Procurement'],email:'zara@netzeroevents.co'},
+    {name:'Oliver Crane',title:'Founder',org:'Ticketwise',type:'Lightning',status:'invited',bio:'Oliver\'s ticketing startup uses dynamic pricing to maximise revenue while ensuring accessibility.',topics:['Ticketing','Dynamic Pricing','Revenue Management']},
+    {name:'Dr Yemi Adeyemi',title:'Neuroscience of Engagement',org:'University College London',type:'Featured',status:'confirmed',bio:'Dr Adeyemi studies how audiences form memories at live events and advises event designers on maximising engagement and recall.',topics:['Neuroscience','Audience Psychology','Engagement']},
+    {name:'Claire Boswell',title:'Head of Events',org:'Salesforce UK',type:'Panellist',status:'confirmed',bio:'Claire runs Salesforce\'s global events programme spanning 800+ events a year across 50 countries.',topics:['Corporate Events','B2B Events','Scale','Budget Management']},
+    {name:'Hiro Tanaka',title:'Lead Developer',org:'EventHive',type:'Lightning',status:'confirmed',bio:'Hiro builds open-source event management tools and is the lead developer behind the EventHive platform.',topics:['Open Source','Developer Tools','API Design'],twitter:'@hirotanaka'}
+  ];
+
+  const sessions = [
+    {title:'Opening Keynote: The AI-Powered Future of Events',format:'Keynote',track:'Main Stage',day:'Day 1',startTime:'09:00',duration:60,status:'confirmed',room:'Main Auditorium',capacity:1000,abstract:'A provocative look at how AI will reshape every aspect of event management — from logistics to audience engagement. What does this mean for the professionals in this room?'},
+    {title:'From Spreadsheets to AI: A Practical Migration Guide',format:'Workshop',track:'Workshop Room',day:'Day 1',startTime:'11:00',duration:90,status:'confirmed',room:'Workshop Room A',capacity:40,abstract:'Hands-on workshop showing the practical steps to replace legacy spreadsheet workflows with AI-assisted tools. Bring your laptop.'},
+    {title:'The Data Behind Unforgettable Experiences',format:'Keynote',track:'Main Stage',day:'Day 1',startTime:'11:00',duration:45,status:'confirmed',room:'Main Auditorium',capacity:1000,abstract:'Carlos Mendez presents research showing which event design decisions have the highest measurable impact on audience satisfaction and return attendance.'},
+    {title:'Sustainability in Practice: A Case Study in Net Zero',format:'Fireside Chat',track:'Innovation Track',day:'Day 1',startTime:'11:00',duration:45,status:'confirmed',room:'Studio B',capacity:200,abstract:'Real numbers, real challenges. How GreenEvent achieved verified net zero for a 5,000-person conference.'},
+    {title:'Monetising Your Event: Beyond Ticket Sales',format:'Panel',track:'Innovation Track',day:'Day 1',startTime:'14:00',duration:60,status:'confirmed',room:'Studio B',capacity:200,abstract:'Our panel of commercial experts discuss sponsorship innovation, brand partnerships, and new revenue models.'},
+    {title:'Hybrid Events: Building for 2 Audiences at Once',format:'Workshop',track:'Workshop Room',day:'Day 1',startTime:'14:00',duration:90,status:'confirmed',room:'Workshop Room A',capacity:40,abstract:'Practical techniques for designing events that work equally well for in-room and virtual attendees.'},
+    {title:'Keynote: Building Communities, Not Audiences',format:'Keynote',track:'Main Stage',day:'Day 1',startTime:'14:30',duration:45,status:'confirmed',room:'Main Auditorium',capacity:1000,abstract:'Sophie Laurent on why the most successful events of the next decade will be built around ongoing communities rather than one-off gatherings.'},
+    {title:'Lightning Talks: 5 Tools Changing How We Work',format:'Lightning Talk',track:'Innovation Track',day:'Day 1',startTime:'16:00',duration:30,status:'confirmed',room:'Studio B',capacity:200,abstract:'5 speakers, 5 minutes each. The tools and techniques they cannot live without.'},
+    {title:'Wellbeing in the Events Industry',format:'Workshop',track:'Workshop Room',day:'Day 1',startTime:'16:00',duration:60,status:'confirmed',room:'Workshop Room A',capacity:60,abstract:'An honest conversation about burnout, mental health, and building sustainable careers in events. Led by Emma Johansson.'},
+    {title:'Closing Day 1: The Year in Numbers',format:'Panel',track:'Main Stage',day:'Day 1',startTime:'17:00',duration:45,status:'confirmed',room:'Main Auditorium',capacity:1000,abstract:'Our data panel reviews the key statistics from 12 months of global events and what they tell us about where the industry is headed.'},
+    {title:'Opening Day 2: The Experience Economy',format:'Keynote',track:'Main Stage',day:'Day 2',startTime:'09:00',duration:45,status:'confirmed',room:'Main Auditorium',capacity:1000,abstract:'Professor Blackwell presents the academic framework for understanding why audiences increasingly value experiences over possessions — and how event professionals can capture this shift.'},
+    {title:'Creative Direction Masterclass',format:'Workshop',track:'Workshop Room',day:'Day 2',startTime:'10:00',duration:120,status:'confirmed',room:'Workshop Room A',capacity:30,abstract:'David Osei takes delegates through his award-winning creative process, from initial brief to final production.'},
+    {title:'AI Ethics in Event Technology',format:'Panel',track:'Innovation Track',day:'Day 2',startTime:'10:00',duration:60,status:'confirmed',room:'Studio B',capacity:200,abstract:'As AI becomes embedded in event tech — from registration to chatbots — what ethical guardrails do we need? Our expert panel debates the key questions.'},
+    {title:'Audience Neuroscience: Designing Memorable Moments',format:'Keynote',track:'Main Stage',day:'Day 2',startTime:'11:00',duration:45,status:'confirmed',room:'Main Auditorium',capacity:1000,abstract:'Dr Adeyemi explains the neuroscience of memory formation at live events and gives five actionable design principles to make your event stick.'},
+    {title:'Startup Spotlight: Building EventStack',format:'Fireside Chat',track:'Innovation Track',day:'Day 2',startTime:'11:30',duration:45,status:'confirmed',room:'Studio B',capacity:200,abstract:'Tom Reynolds in conversation about the real journey of building a successful event technology company: the mistakes, the pivots, and the lessons.'},
+    {title:'Net Zero Events: Getting Your Suppliers Aligned',format:'Workshop',track:'Workshop Room',day:'Day 2',startTime:'13:00',duration:90,status:'confirmed',room:'Workshop Room A',capacity:40,abstract:'Practical session on how to engage your supply chain in your sustainability journey, including contract language, auditing, and reporting.'},
+    {title:'Corporate Events at Scale: The Salesforce Model',format:'Keynote',track:'Main Stage',day:'Day 2',startTime:'14:00',duration:45,status:'confirmed',room:'Main Auditorium',capacity:1000,abstract:'Claire Boswell reveals how Salesforce manages 800+ events a year without losing quality, including the systems, team structures, and technology stack they rely on.'},
+    {title:'The Creator Economy Meets Live Events',format:'Panel',track:'Innovation Track',day:'Day 2',startTime:'14:00',duration:60,status:'confirmed',room:'Studio B',capacity:200,abstract:'Social media has changed who has influence. How can event producers work with creators to amplify reach and build new audience segments?'},
+    {title:'Crowd Safety: New Standards for a New Era',format:'Panel',track:'Workshop Room',day:'Day 2',startTime:'14:00',duration:60,status:'confirmed',room:'Workshop Room B',capacity:80,abstract:'Following recent incidents at major events globally, our safety experts examine what\'s changed, what hasn\'t, and where the industry must go next.'},
+    {title:'Immersive Experiences: Case Studies',format:'Workshop',track:'Workshop Room',day:'Day 2',startTime:'16:00',duration:60,status:'confirmed',room:'Workshop Room A',capacity:30,abstract:'Kenji Watanabe walks through three landmark immersive events — what worked, what failed, and the technical and creative lessons from each.'},
+    {title:'TikTok & Live Events: The Opportunity',format:'Keynote',track:'Main Stage',day:'Day 2',startTime:'15:30',duration:30,status:'confirmed',room:'Main Auditorium',capacity:1000,abstract:'Mei Lin on how TikTok is transforming event discovery and content strategy, and how event producers can build audience before, during, and after their events.'},
+    {title:'Open Source Tools for Event Managers',format:'Lightning Talk',track:'Innovation Track',day:'Day 2',startTime:'16:00',duration:30,status:'confirmed',room:'Studio B',capacity:200,abstract:'Lightning talks from the EventHive team on the open source tools available to the community.'},
+    {title:'AV Production Masterclass',format:'Workshop',track:'Workshop Room',day:'Day 1',startTime:'09:30',duration:90,status:'confirmed',room:'Workshop Room B',capacity:30,abstract:'Marcus Williams leads an intensive workshop on AV production for large-scale events. From specification to delivery day.'},
+    {title:'Networking Masterclass: Engineering Serendipity',format:'Workshop',track:'Workshop Room',day:'Day 2',startTime:'09:00',duration:60,status:'confirmed',room:'Workshop Room B',capacity:60,abstract:'The science and art of designing networking opportunities that create lasting professional relationships.'},
+    {title:'Closing Keynote: The Next 10 Years',format:'Keynote',track:'Main Stage',day:'Day 2',startTime:'17:00',duration:60,status:'confirmed',room:'Main Auditorium',capacity:1000,abstract:'Our closing keynote brings together the threads of the conference: a bold, evidence-based view of where the events industry is headed — and what it means for the professionals shaping it.'},
+    {title:'Lunch Break — Day 1',format:'Break',track:'Main Stage',day:'Day 1',startTime:'12:30',duration:60,status:'confirmed',room:''},
+    {title:'Lunch Break — Day 2',format:'Break',track:'Main Stage',day:'Day 2',startTime:'12:30',duration:60,status:'confirmed',room:''},
+    {title:'Morning Break — Day 1',format:'Break',track:'Main Stage',day:'Day 1',startTime:'10:00',duration:30,status:'confirmed',room:''},
+    {title:'Morning Break — Day 2',format:'Break',track:'Main Stage',day:'Day 2',startTime:'10:30',duration:30,status:'confirmed',room:''},
+    {title:'Afternoon Break',format:'Break',track:'Main Stage',day:'Day 1',startTime:'15:30',duration:30,status:'confirmed',room:''},
+  ];
+
+  // Create speakers with IDs
+  DB.speakers = speakerData.map((sp, i) => ({
+    ...sp, id: 'sp-'+String(i+1).padStart(3,'0'),
+    createdAt: new Date(Date.now() - (30-i)*24*3600000).toISOString(),
+    updatedAt: new Date().toISOString()
+  }));
+
+  // Speaker assignments mapping (session index → speaker names)
+  const speakerMap = {
+    0: ['Dr Sarah Mitchell'], 1: ['Kenji Watanabe','Carlos Mendez'], 2: ['Carlos Mendez'],
+    3: ['Leila Hassan','Zara Ahmed'], 4: ['Nina Kowalski','Claire Boswell','Tom Reynolds'],
+    5: ['Raj Patel'], 6: ['Sophie Laurent'], 7: ['Ben Tucker','Oliver Crane','Fatima Al-Rashid','Hiro Tanaka','Zara Ahmed'],
+    8: ['Emma Johansson'], 9: ['Carlos Mendez','Dr Amara Diallo','Priya Sharma'],
+    10: ['Prof. Ian Blackwell'], 11: ['David Osei'], 12: ['Dr Aisha Nkrumah','Priya Sharma','Carlos Mendez'],
+    13: ['Dr Yemi Adeyemi'], 14: ['Tom Reynolds'], 15: ['Zara Ahmed','Leila Hassan'],
+    16: ['Claire Boswell'], 17: ['Mei Lin','Sophie Laurent','James Okafor'],
+    18: ['Luke Patterson'], 19: ['Kenji Watanabe'], 20: ['Mei Lin'],
+    21: ['Hiro Tanaka'], 22: ['Marcus Williams'], 23: ['Emma Johansson'],
+    24: ['James Okafor','Dr Sarah Mitchell']
+  };
+
+  DB.sessions = sessions.map((s, i) => {
+    const assigns = (speakerMap[i] || []).map(name => {
+      const sp = DB.speakers.find(sp => sp.name === name);
+      return sp ? { id: sp.id, role: i % 3 === 0 ? 'presenter' : i % 3 === 1 ? 'panellist' : 'moderator' } : null;
+    }).filter(Boolean);
+    return { ...s, id: 'sess-'+String(i+1).padStart(3,'0'), speakers: assigns, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+  });
+
+  // Requirements for confirmed speakers
+  const reqTemplates = [
+    {avNeeds:'Lapel mic, HDMI adaptor, clicker',slidesFormat:'Keynote',dietary:'Vegan',arrival:'11 Jun, 14:00',departure:'13 Jun, 18:00',hotel:'Hilton City Centre, 11–13 Jun',confirmed:true},
+    {avNeeds:'Headset mic, 4K display',slidesFormat:'Google Slides, live demo',dietary:'',arrival:'12 Jun, 09:00',departure:'12 Jun, 22:00',confirmed:true},
+    {avNeeds:'Standing mic, HDMI',slidesFormat:'PowerPoint',dietary:'Nut allergy',arrival:'11 Jun, 16:00',departure:'13 Jun, 12:00',hotel:'Marriott, 11–13 Jun',confirmed:false},
+  ];
+  DB.requirements = DB.speakers.slice(0, 10).map((sp, i) => ({
+    speakerId: sp.id,
+    ...(reqTemplates[i % reqTemplates.length]),
+    updatedAt: new Date().toISOString()
+  }));
+
+  // Comms log
+  DB.commsLog = [
+    {id:uid(),speakerId:'sp-001',date:'2026-02-15',type:'email',subject:'Invitation to keynote',notes:'Sent formal invitation with event details and speaking fee proposal.',followUpDate:'2026-02-22',createdAt:new Date().toISOString()},
+    {id:uid(),speakerId:'sp-001',date:'2026-02-23',type:'email',subject:'Confirmation received',notes:'Sarah confirmed. Agreed fee £5,000 + travel. Sending contracts this week.',followUpDate:'2026-03-01',createdAt:new Date().toISOString()},
+    {id:uid(),speakerId:'sp-002',date:'2026-02-10',type:'call',subject:'Initial outreach call',notes:'Spoke with James for 30 mins. He\'s interested but needs to check his diary. Will confirm by end of month.',followUpDate:'2026-03-01',createdAt:new Date().toISOString()},
+    {id:uid(),speakerId:'sp-003',date:'2026-03-01',type:'meeting',subject:'Speaker briefing meeting',notes:'Virtual briefing with Priya. Discussed session content, audience level, and AV requirements.',followUpDate:'2026-04-01',createdAt:new Date().toISOString()},
+    {id:uid(),speakerId:'sp-005',date:'2026-02-20',type:'email',subject:'Keynote invitation',notes:'Sent invitation to Dr Diallo. Awaiting response from her PA.',followUpDate:'2026-02-28',createdAt:new Date().toISOString()},
+  ];
+
+  save();
+  renderSpeakers();
+  alert(`✓ Sample data loaded: ${DB.speakers.length} speakers, ${DB.sessions.length} sessions, ${DB.requirements.length} requirement records, ${DB.commsLog.length} comms entries`);
+}
+
+// ═══════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════
+function esc(str) {
+  if (str === null || str === undefined) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+load();
+renderSpeakers();
+updateBadges();
+</script>
+</body>
+</html>

@@ -1,0 +1,173 @@
+{
+    "slug": "speaker-programme",
+    "name": "Speaker Programme Manager",
+    "version": "1.0.0",
+    "description": "End-to-end speaker management covering profile CRUD, session scheduling, multi-track agenda builder with conflict detection, requirements tracking (AV/dietary/travel/accommodation), speaker status pipeline (Shortlisted → Thanked), communication log, and export to PDF/CSV and Run Sheet.",
+    "category": "content",
+    "difficulty": "intermediate",
+    "requires_backend": false,
+    "is_published": true,
+    "author": "Visual Hive",
+    "source_repo": "https://github.com/Visual-Hive/eventhive-tool-speaker-programme",
+    "tool_file": "tool.html",
+    "config_schema": {
+        "sections": [
+            {
+                "id": "branding",
+                "title": "Branding",
+                "description": "Customise to match your event brand.",
+                "fields": [
+                    {
+                        "id": "companyName",
+                        "type": "text",
+                        "label": "Company / Event Name",
+                        "placeholder": "e.g. TechSummit Events",
+                        "required": true,
+                        "default": "My Event"
+                    },
+                    {
+                        "id": "primaryColor",
+                        "type": "color",
+                        "label": "Primary Brand Colour",
+                        "default": "#6366F1"
+                    }
+                ]
+            },
+            {
+                "id": "event",
+                "title": "Event Details",
+                "description": "Set your event's basic details for the agenda builder.",
+                "fields": [
+                    {
+                        "id": "eventName",
+                        "type": "text",
+                        "label": "Event Name",
+                        "placeholder": "e.g. TechSummit 2026",
+                        "default": "My Conference"
+                    },
+                    {
+                        "id": "eventDate",
+                        "type": "text",
+                        "label": "Event Date(s)",
+                        "placeholder": "e.g. 12–13 June 2026",
+                        "default": ""
+                    },
+                    {
+                        "id": "eventVenue",
+                        "type": "text",
+                        "label": "Venue",
+                        "placeholder": "e.g. ExCeL London",
+                        "default": ""
+                    },
+                    {
+                        "id": "timeFormat",
+                        "type": "select",
+                        "label": "Time Format",
+                        "options": [
+                            {
+                                "label": "24-hour (09:00)",
+                                "value": "24h"
+                            },
+                            {
+                                "label": "12-hour (9:00 AM)",
+                                "value": "12h"
+                            }
+                        ],
+                        "default": "24h"
+                    },
+                    {
+                        "id": "dayStart",
+                        "type": "text",
+                        "label": "Agenda Day Start",
+                        "placeholder": "08:00",
+                        "description": "Earliest time shown on the agenda grid",
+                        "default": "08:00"
+                    },
+                    {
+                        "id": "dayEnd",
+                        "type": "text",
+                        "label": "Agenda Day End",
+                        "placeholder": "19:00",
+                        "description": "Latest time shown on the agenda grid",
+                        "default": "19:00"
+                    }
+                ]
+            },
+            {
+                "id": "programme",
+                "title": "Programme Structure",
+                "description": "Define the tracks and session formats for your event.",
+                "fields": [
+                    {
+                        "id": "defaultTracks",
+                        "type": "json",
+                        "label": "Tracks",
+                        "description": "Stage / room names for the agenda grid.",
+                        "default": [
+                            "Main Stage",
+                            "Innovation Track",
+                            "Workshop Room"
+                        ]
+                    },
+                    {
+                        "id": "sessionFormats",
+                        "type": "json",
+                        "label": "Session Formats",
+                        "description": "Types of sessions available.",
+                        "default": [
+                            "Keynote",
+                            "Panel",
+                            "Workshop",
+                            "Lightning Talk",
+                            "Fireside Chat",
+                            "Break"
+                        ]
+                    },
+                    {
+                        "id": "speakerTypes",
+                        "type": "json",
+                        "label": "Speaker Types",
+                        "description": "Categories for classifying speakers.",
+                        "default": [
+                            "Keynote",
+                            "Featured",
+                            "Workshop Facilitator",
+                            "Panellist",
+                            "Lightning"
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    "default_config": {
+        "companyName": "My Event",
+        "primaryColor": "#6366F1",
+        "eventName": "My Conference",
+        "eventDate": "",
+        "eventVenue": "",
+        "timeFormat": "24h",
+        "dayStart": "08:00",
+        "dayEnd": "19:00",
+        "defaultTracks": [
+            "Main Stage",
+            "Innovation Track",
+            "Workshop Room"
+        ],
+        "sessionFormats": [
+            "Keynote",
+            "Panel",
+            "Workshop",
+            "Lightning Talk",
+            "Fireside Chat",
+            "Break"
+        ],
+        "speakerTypes": [
+            "Keynote",
+            "Featured",
+            "Workshop Facilitator",
+            "Panellist",
+            "Lightning"
+        ]
+    }
+}
